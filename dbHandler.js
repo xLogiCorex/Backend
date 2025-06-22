@@ -1,6 +1,6 @@
+//Teszt
 const { Sequelize, DataTypes } = require("sequelize");
 const dbHandler = new Sequelize('project', 'root', '', {host:'127.1.1.1', dialect:'mysql'})
-// tábla hegyek
 exports.userTable = dbHandler.define('user', {
   id: {
     type: DataTypes.UUID,
@@ -324,3 +324,4 @@ exports.logTable = dbHandler.define('log', {
     allowNull: true
   }
 })
+//fel
