@@ -59,64 +59,6 @@ app.post('/orders', async (req,res) => {
     }
 })
 
-app.post('/register', async (req, res) => {
-    let { newName, newEmail, newPassword, newRole } = req.body;
-
-    if(!newName || !newPassword || !newEmail){
-        return res.status(400).json({message: 'Minden mező kitöltése kötelező!'})
-    }
-
-    if(newPassword.length <= 3){
-        return res.status(401).json({message: 'A jelszónak legalább 3 karakter hosszúnak kell lennie!'})
-    }
-
-    if(newName.length <= 3){
-        return res.status(401).json({message: 'A felhasználónévnek legalább 3 karakter hosszúnak kell lennie!'})
-    }
-
-    const emailCheck = await dbHandler.userTable.findOne({
-        where:{email: newEmail} 
-    })
-
-    if(emailCheck){
-        return res.status(409).json({message: 'Már van regisztráció ezzel az e-mail-címmel!'})
-    }
-
-    const usernameCheck = await dbHandler.userTable.findOne({
-        where:{name: newName} 
-    })
-
-    if(usernameCheck){
-        return res.status(409).json({message: 'Már van regisztráció ezzel a felhasználónévvel!'})
-    }
-
-    if(newRole == 'ADMIN' + SECRET){
-        newRole = 'admin'
-    }
-    else if(newRole == 'STOREKEEPER'){
-        newRole = 'storekeeper'
-    }
-    else{
-        newRole = 'user'
-    }
-
-    // Jelszó titkosítás
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    try{
-        await dbHandler.userTable.create({
-            name: newName,
-            password: hashedPassword,
-            email: newEmail,
-            role: newRole
-        })
-        return res.status(201).json({message: 'Sikeres regisztráció!'})
-    }
-    catch(error){
-        return res.status(500).json({message: 'Hiba történt a regisztráció során. Kérjük, próbáld újra később!', error: error.message })
-    }
-})
-
 app.post('/login', async (req,res) => {
     try{
         let { newEmail, newPassword } = req.body;
