@@ -60,7 +60,7 @@ app.post('/orders', async (req,res) => {
 })
 
 app.post('/register', async (req, res) => {
-    let { newName, newEmail, newPassword, newRole, newActive } = req.body;
+    let { newName, newEmail, newPassword, newRole } = req.body;
 
     if(!newName || !newPassword || !newEmail){
         return res.status(400).json({message: 'Minden mező kitöltése kötelező!'})
@@ -91,7 +91,10 @@ app.post('/register', async (req, res) => {
     }
 
     if(newRole == 'ADMIN' + SECRET){
-        newRole = "admin"
+        newRole = 'admin'
+    }
+    else if(newRole == 'STOREKEEPER'){
+        newRole = 'storekeeper'
     }
     else{
         newRole = 'user'
@@ -116,24 +119,24 @@ app.post('/register', async (req, res) => {
 
 app.post('/login', async (req,res) => {
     try{
-        let { newName, newPassword } = req.body;
+        let { newEmail, newPassword } = req.body;
 
         const userLogin = await dbHandler.userTable.findOne({
-            where:{name: newName}
+            where:{email: newEmail}
         })
 
         if(!userLogin){
-            return res.status(401).json({message: 'A megadott felhasználónév nem található!'})
+            return res.status(401).json({message: 'A megadott e-mail-cím nem található!'})
         }
 
         const passwordMatch = await bcrypt.compare(newPassword, userLogin.password);
         
         if (!passwordMatch) {
-        return res.status(401).json({ message: 'A megadott jelszó helytelen.' });
+            return res.status(401).json({ message: 'A megadott jelszó helytelen.' });
         }
 
         const token = JWT.sign(
-            {id: userLogin.id, username: userLogin.name, role: userLogin.role}, SECRET, { expiresIn: '1h' } 
+            {id: userLogin.id, email: userLogin.email, role: userLogin.role}, SECRET, { expiresIn: '1h' } 
         )
 
         return res.status(200).json({token, message: 'Sikeres bejelentkezés!'})
