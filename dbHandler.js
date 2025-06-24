@@ -38,10 +38,10 @@ exports.userTable = dbHandler.define('user', {
 
 exports.productTable = dbHandler.define('product', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
     primaryKey: true,
-    allowNull: false
+    allowNull: false,
+    autoIncrement: true
   },
   sku: {
     type: DataTypes.STRING,
@@ -53,11 +53,11 @@ exports.productTable = dbHandler.define('product', {
     allowNull: false
   },
   categoryId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false
   },
   subcategoryId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: true
   },
   unit: {
@@ -77,15 +77,20 @@ exports.productTable = dbHandler.define('product', {
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 0
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true
   }
 })
 
 exports.categoryTable = dbHandler.define('category', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
     primaryKey: true,
-    allowNull: false
+    allowNull: false,
+    autoIncrement: true
   },
   name: {
     type: DataTypes.STRING,
@@ -96,27 +101,27 @@ exports.categoryTable = dbHandler.define('category', {
 
 exports.subcategoryTable = dbHandler.define('subcategory', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
     primaryKey: true,
-    allowNull: false
+    allowNull: false,
+    autoIncrement: true
   },
   name: {
     type: DataTypes.STRING,
     allowNull: false
   },
   categoryId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false
   }
 })
 
 exports.partnerTable = dbHandler.define('partner', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
     primaryKey: true,
-    allowNull: false
+    allowNull: false,
+    autoIncrement: true
   },
   name: {
     type: DataTypes.STRING,
@@ -142,18 +147,23 @@ exports.partnerTable = dbHandler.define('partner', {
   phone: {
     type: DataTypes.STRING,
     allowNull: false
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true
   }
 })
 
 exports.stockMovementTable = dbHandler.define('stockMovement', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
     primaryKey: true,
-    allowNull: false
+    allowNull: false,
+    autoIncrement: true
   },
   productId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false
   },
   type: {
@@ -185,10 +195,10 @@ exports.stockMovementTable = dbHandler.define('stockMovement', {
 
 exports.orderTable = dbHandler.define('order', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
     primaryKey: true,
-    allowNull: false
+    allowNull: false,
+    autoIncrement: true
   },
   orderNumber: {
     type: DataTypes.STRING,
@@ -196,7 +206,7 @@ exports.orderTable = dbHandler.define('order', {
     unique: true
   },
   partnerId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false
   },
   userId: {
@@ -217,17 +227,17 @@ exports.orderTable = dbHandler.define('order', {
 
 exports.orderItemTable = dbHandler.define('orderItem', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
     primaryKey: true,
-    allowNull: false
+    allowNull: false,
+    autoIncrement: true
   },
   orderId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false
   },
   productId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false
   },
   quantity: {
@@ -242,10 +252,10 @@ exports.orderItemTable = dbHandler.define('orderItem', {
 
 exports.invoiceTable = dbHandler.define('invoice', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
     primaryKey: true,
-    allowNull: false
+    allowNull: false,
+    autoIncrement: true
   },
   invoiceNumber: {
     type: DataTypes.STRING,
@@ -253,11 +263,11 @@ exports.invoiceTable = dbHandler.define('invoice', {
     unique: true
   },
   orderId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false
   },
   partnerId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false
   },
   userId: {
@@ -293,10 +303,10 @@ exports.invoiceTable = dbHandler.define('invoice', {
 
 exports.logTable = dbHandler.define('log', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
     primaryKey: true,
-    allowNull: false
+    allowNull: false,
+    autoIncrement: true
   },
   userId: {
     type: DataTypes.UUID,
@@ -316,7 +326,7 @@ exports.logTable = dbHandler.define('log', {
     allowNull: false
   },
   entityId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false
   },
   changes: {
