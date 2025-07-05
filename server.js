@@ -50,16 +50,16 @@ app.get('/partners', authenticateJWT(), authorizeRole(['sales', 'admin']), async
 // ----------------------------------------------
 
 app.post('/products', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
-    let { newSku, newName, newCategoryId, newSubCategoryId, newUnit, newPrice, newMinStockLevel } = req.body;
+    let {  newSku, newName, newCategoryId, newSubcategoryId, newUnit, newPrice, newStockQuantity, newMinStockLevel, newIsActive } = req.body;
 
     if(!newSku || !newName || !newCategoryId || !newUnit || !newPrice ) {
         return res.status(400).json({ message: 'Kötelező mező kitöltése szükséges!' });     // jelölni kell frontenden a kötelző mezőket pl. *-gal
     }
     if(newSku.length <= 3){
-        return res.status(401).json({message: 'A termék SKU-nak legalább 4 karakter hosszúnak kell lennie!'})
+        return res.status(400).json({message: 'A termék SKU-nak legalább 4 karakter hosszúnak kell lennie!'})
     }
     if(newName.length <= 3){
-        return res.status(401).json({message: 'A termék nevének minimum 4 karakter hosszúnak kell lennie!'})
+        return res.status(400).json({message: 'A termék nevének minimum 4 karakter hosszúnak kell lennie!'})
     }
     const productSkuCheck = await dbHandler.productTable.findOne({
         where:{sku: newSku}
@@ -79,10 +79,12 @@ app.post('/products', authenticateJWT(), authorizeRole(['admin']), async (req, r
             sku: newSku,
             name: newName,
             categoryId: newCategoryId,
-            subcategoryId: newSubCategoryId,
+            subcategoryId: newSubcategoryId || null,
             unit: newUnit,
             price: newPrice,
-            minStockLevel: newMinStockLevel
+            stockQuantity: newStockQuantity || 0,
+            minStockLevel: newMinStockLevel || 0,
+            isActive: newIsActive
         })
         return res.status(201).json({message: 'Termék sikeresen rögzítve!'})
     }
