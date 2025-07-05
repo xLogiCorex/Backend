@@ -29,6 +29,14 @@ app.get('/products', authenticateJWT(), authorizeRole(['admin', 'sales']), async
     res.status(200).json(await dbHandler.productTable.findAll())
 })
 
+app.get('/categories', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
+    res.status(200).json(await dbHandler.categoryTable.findAll())
+})
+
+app.get('/subcategories', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
+    res.status(200).json(await dbHandler.subcategoryTable.findAll())
+})
+
 app.get('/partners', authenticateJWT(), authorizeRole(['sales', 'admin']), async (req, res) => {
     res.status(200).json(await dbHandler.partnerTable.findAll())
 })
@@ -42,15 +50,15 @@ app.get('/partners', authenticateJWT(), authorizeRole(['sales', 'admin']), async
 // ----------------------------------------------
 
 app.post('/products', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
-    let { newSku, newName, newCategory, newSubCategory, newUnit, newPrice, newMinStockLevel } = req.body;
+    let { newSku, newName, newCategoryId, newSubCategoryId, newUnit, newPrice, newMinStockLevel } = req.body;
 
-    if(!newSku || !newName || !newCategory || !newUnit || !newPrice ) {
+    if(!newSku || !newName || !newCategoryId || !newUnit || !newPrice ) {
         return res.status(400).json({ message: 'Kötelező mező kitöltése szükséges!' });     // jelölni kell frontenden a kötelző mezőket pl. *-gal
     }
     if(newSku.length <= 3){
         return res.status(401).json({message: 'A termék SKU-nak legalább 4 karakter hosszúnak kell lennie!'})
     }
-        if(newName.length <= 3){
+    if(newName.length <= 3){
         return res.status(401).json({message: 'A termék nevének minimum 4 karakter hosszúnak kell lennie!'})
     }
     const productSkuCheck = await dbHandler.productTable.findOne({
@@ -70,8 +78,8 @@ app.post('/products', authenticateJWT(), authorizeRole(['admin']), async (req, r
         await dbHandler.productTable.create({
             sku: newSku,
             name: newName,
-            categoryId: newCategory,
-            subcategoryId: newSubCategory,
+            categoryId: newCategoryId,
+            subcategoryId: newSubCategoryId,
             unit: newUnit,
             price: newPrice,
             minStockLevel: newMinStockLevel
