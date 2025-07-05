@@ -1,12 +1,13 @@
-const express = require('express');
-const JWT = require('jsonwebtoken');
-const dbHandler = require('./dbHandler');
-const cors = require('cors');
+const express = require('express')
+const JWT = require('jsonwebtoken')
+const dbHandler = require('./dbHandler')
+const cors = require('cors')
 require('dotenv').config()
 const PORT = process.env.PORT
 const SECRET = process.env.SECRET
 const app = express().use(express.json(),cors())
 const bcrypt = require('bcrypt')
+const axios = require('axios')
 
 dbHandler.userTable.sync({ alter: true })
 dbHandler.productTable.sync({ alter: true })
@@ -30,6 +31,117 @@ app.get('/products', authenticateJWT(), authorizeRole(['admin', 'sales']), async
 
 app.get('/partners', authenticateJWT(), authorizeRole(['sales', 'admin']), async (req, res) => {
     res.status(200).json(await dbHandler.partnerTable.findAll())
+})
+
+// ----------- Új termék rögzítése --------------
+//
+// Az alábbi tulajdonságokat kérjük csak be: 
+//  newSku, newName, newCategory, newSubCategory, newUnit, newPrice, newMinStockLevel 
+//
+//  Készlet mennyiséget bevételezésnél fogjuk megadni. Az egy másik put lesz.
+// ----------------------------------------------
+
+app.post('/products', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
+    let { newSku, newName, newCategory, newSubCategory, newUnit, newPrice, newMinStockLevel } = req.body;
+
+    if(!newSku || !newName || !newCategory || !newUnit || !newPrice ) {
+        return res.status(400).json({ message: 'Kötelező mező kitöltése szükséges!' });     // jelölni kell frontenden a kötelző mezőket pl. *-gal
+    }
+    if(newSku.length <= 3){
+        return res.status(401).json({message: 'A termék SKU-nak legalább 4 karakter hosszúnak kell lennie!'})
+    }
+        if(newName.length <= 3){
+        return res.status(401).json({message: 'A termék nevének minimum 4 karakter hosszúnak kell lennie!'})
+    }
+    const productSkuCheck = await dbHandler.productTable.findOne({
+        where:{sku: newSku}
+    })
+    if (productSkuCheck){
+    return res.status(409).json({message: 'Ez a termék SKU már létezik!'})
+    }
+    const productNameCheck = await dbHandler.productTable.findOne({
+        where:{name: newName}
+    })
+    if (productNameCheck){
+    return res.status(409).json({message: 'Ez a termék név már létezik!'})
+    }
+
+    try{
+        await dbHandler.productTable.create({
+            sku: newSku,
+            name: newName,
+            categoryId: newCategory,
+            subcategoryId: newSubCategory,
+            unit: newUnit,
+            price: newPrice,
+            minStockLevel: newMinStockLevel
+        })
+        return res.status(201).json({message: 'Termék sikeresen rögzítve!'})
+    }
+    catch(error)
+    {
+        return res.status(500).json({message: 'A termék mentése sikertelen volt. Kérjük, próbáld újra!', error: error.message})
+    }
+
+})
+
+// ----------- Új partner rögzítése --------------
+//
+// Az alábbi tulajdonságokat kérjük csak be: 
+//  newName, newTaxNumber, newAddress, newContactPerson, newEmail, newPhone
+//
+//  Ez mind kötelező adat.
+//
+//  Tettem bele e-mail és adószám ellenőrzést. Majd teszteljük!
+//
+// ----------------------------------------------
+
+app.post('/partners', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
+    let { newName, newTaxNumber, newAddress, newContactPerson, newEmail, newPhone } = req.body;
+
+    if(!newName || !newTaxNumber || !newAddress || !newContactPerson || !newEmail || !newPhone ) {
+        return res.status(400).json({ message: 'Minden mező kitöltése kötelező!' });  
+    }
+    if(newName.length <= 3) {
+        return res.status(401).json({message: 'A cég nevének legalább 4 karakter hosszúnak kell lennie!'})
+    }
+    
+    // adószám validálása - forrás ChatGPT
+    const adoRegex = new RegExp('^\\d{8}-\\d{1}-\\d{2}$')
+
+    if (!adoRegex.test(newTaxNumber)) {
+        return res.status(400).json({ message: 'Hibás adószám formátum! (pl.: 12345678-1-12)' })
+    }
+    
+    // email validálása - forrás ChatGPT
+    const emailRegex = new RegExp('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$')
+    if (!emailRegex.test(newEmail)) {
+        return res.status(400).json({ message: 'Hibás email formátum!' })
+    }
+
+    const partnerTaxNumberCheck = await dbHandler.partnerTable.findOne({
+        where:{taxNumber: newTaxNumber}
+    })
+    if (partnerTaxNumberCheck){
+    return res.status(409).json({message: 'Ez a partner már létezik!'})
+    }
+
+    try{
+        await dbHandler.partnerTable.create({
+            name: newName,
+            taxNumber: newTaxNumber,
+            address: newAddress,
+            contactPerson: newContactPerson,
+            email: newEmail,
+            phone: newPhone
+        })
+        return res.status(201).json({message: 'Partner sikeresen rögzítve!'})
+    }
+    catch(error)
+    {
+        return res.status(500).json({message: 'A partner mentése sikertelen volt. Kérjük, próbáld újra!', error: error.message})
+    }
+    
 })
 
 app.post('/orders', authenticateJWT(), authorizeRole(['admin', 'sales', 'user']), async (req,res) => {

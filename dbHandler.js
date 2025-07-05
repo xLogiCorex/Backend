@@ -62,7 +62,8 @@ exports.productTable = dbHandler.define('product', {
   },
   unit: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
+    defaultValue: "db"
   },
   price: {
     type: DataTypes.INTEGER,
@@ -75,7 +76,7 @@ exports.productTable = dbHandler.define('product', {
   },
   minStockLevel: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     defaultValue: 0
   },
   isActive: {
