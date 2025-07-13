@@ -107,7 +107,7 @@ app.post('/products', authenticateJWT(), authorizeRole(['admin']), async (req, r
 // ----------------------------------------------
 
 app.post('/partners', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
-    let { newName, newTaxNumber, newAddress, newContactPerson, newEmail, newPhone } = req.body;
+    let { newName, newTaxNumber, newAddress, newContactPerson, newEmail, newPhone, newIsActive } = req.body;
 
     if(!newName || !newTaxNumber || !newAddress || !newContactPerson || !newEmail || !newPhone ) {
         return res.status(400).json({ message: 'Minden mező kitöltése kötelező!' });  
@@ -143,7 +143,8 @@ app.post('/partners', authenticateJWT(), authorizeRole(['admin']), async (req, r
             address: newAddress,
             contactPerson: newContactPerson,
             email: newEmail,
-            phone: newPhone
+            phone: newPhone,
+            isActive: newIsActive
         })
         return res.status(201).json({message: 'Partner sikeresen rögzítve!'})
     }
@@ -152,6 +153,61 @@ app.post('/partners', authenticateJWT(), authorizeRole(['admin']), async (req, r
         return res.status(500).json({message: 'A partner mentése sikertelen volt. Kérjük, próbáld újra!', error: error.message})
     }
     
+})
+
+app.post('/category', authenticateJWT(), authorizeRole(['admin']), async (req,res) => {
+    let { newName } = req.body;
+
+    if (!newName) {
+        return res.status(400).json({ message: 'Írd be a kategória nevét a mezőbe!' });
+    }
+
+    const oneCategory = await dbHandler.categoryTable.findOne({
+        where:{name: newName}
+    })
+
+    if (oneCategory){
+        return res.status(409).json({message: 'Ez a kategórianév már létezik!'})
+    }
+
+    try{
+        await dbHandler.categoryTable.create({
+            name: newName
+        })
+        return res.status(201).json({message: 'Kategória sikeresen rögzítve!'})
+    }
+    catch(error)
+    {
+        return res.status(500).json({message: 'A kategória mentése sikertelen volt. Kérjük, próbáld újra!', error: error.message})
+    }
+})
+
+app.post('/subCategory', authenticateJWT(), authorizeRole(['admin']), async (req,res) => {
+    let { newName, newCategoryId } = req.body;
+
+    if (!newName || !newCategoryId) {
+        return res.status(400).json({ message: 'Minden mező kitöltése kötelező!' });
+    }
+
+    const oneSubCategory = await dbHandler.subcategoryTable.findOne({
+        where:{name: newName}
+    })
+        // hogyan szűröm ki a főkategóriát?
+    if (oneSubCategory){
+        return res.status(409).json({message: 'Ez az alkategórianév már létezik!'})
+    }
+
+    try{
+        await dbHandler.subcategoryTable.create({
+            name: newName,
+            categoryId: newCategoryId
+        })
+        return res.status(201).json({message: 'Alkategória sikeresen rögzítve!'})
+    }
+    catch(error)
+    {
+        return res.status(500).json({message: 'Az alkategória mentése sikertelen volt. Kérjük, próbáld újra!', error: error.message})
+    }
 })
 
 app.post('/orders', authenticateJWT(), authorizeRole(['admin', 'sales', 'user']), async (req,res) => {
@@ -166,7 +222,7 @@ app.post('/orders', authenticateJWT(), authorizeRole(['admin', 'sales', 'user'])
     })
 
     if (oneOrder){
-    return res.status(409).json({message: 'Ez a rendelés már létezik!'})
+        return res.status(409).json({message: 'Ez a rendelés már létezik!'})
     }
 
     try{
@@ -186,7 +242,7 @@ app.post('/orders', authenticateJWT(), authorizeRole(['admin', 'sales', 'user'])
 })
 
 app.post('/register', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
-    let { newName, newEmail, newPassword, newRole } = req.body;
+    let { newName, newEmail, newPassword, newRole, newIsActive } = req.body;
 
     if(!newName || !newPassword || !newEmail){
         return res.status(400).json({message: 'Minden mező kitöltése kötelező!'})
@@ -235,6 +291,7 @@ app.post('/register', authenticateJWT(), authorizeRole(['admin']), async (req, r
             password: hashedPassword,
             email: newEmail,
             role: newRole,
+            isActive: newIsActive
         })
         return res.status(201).json({message: 'Sikeres regisztráció!'})
     }
