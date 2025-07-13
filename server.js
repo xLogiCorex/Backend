@@ -155,7 +155,7 @@ app.post('/partners', authenticateJWT(), authorizeRole(['admin']), async (req, r
     
 })
 
-app.post('/category', authenticateJWT(), authorizeRole(['admin']), async (req,res) => {
+app.post('/categories', authenticateJWT(), authorizeRole(['admin']), async (req,res) => {
     let { newName } = req.body;
 
     if (!newName) {
@@ -182,7 +182,7 @@ app.post('/category', authenticateJWT(), authorizeRole(['admin']), async (req,re
     }
 })
 
-app.post('/subCategory', authenticateJWT(), authorizeRole(['admin']), async (req,res) => {
+app.post('/subcategories', authenticateJWT(), authorizeRole(['admin']), async (req,res) => {
     let { newName, newCategoryId } = req.body;
 
     if (!newName || !newCategoryId) {
