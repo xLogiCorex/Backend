@@ -190,9 +190,10 @@ app.post('/subcategories', authenticateJWT(), authorizeRole(['admin']), async (r
     }
 
     const oneSubCategory = await dbHandler.subcategoryTable.findOne({
-        where:{name: newName}
+        where:{name: newName,
+            categoryId: newCategoryId
+        }
     })
-        // hogyan szűröm ki a főkategóriát?
     if (oneSubCategory){
         return res.status(409).json({message: 'Ez az alkategórianév már létezik!'})
     }
@@ -254,6 +255,11 @@ app.post('/register', authenticateJWT(), authorizeRole(['admin']), async (req, r
 
     if(newName.length <= 3){
         return res.status(401).json({message: 'A felhasználónévnek legalább 3 karakter hosszúnak kell lennie!'})
+    }
+
+    const emailRegex = new RegExp('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$')
+    if (!emailRegex.test(newEmail)) {
+        return res.status(400).json({ message: 'Hibás email formátum!' })
     }
 
     const emailCheck = await dbHandler.userTable.findOne({
