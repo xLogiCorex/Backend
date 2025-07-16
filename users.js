@@ -4,6 +4,7 @@ const dbHandler = require('./dbHandler')
 const SECRET = process.env.SECRET
 const bcrypt = require('bcrypt')
 const JWT = require('jsonwebtoken')
+require('dotenv').config()
 
 const authenticateJWT = require('./authenticateJWT')
 const authorizeRole = require('./authorizeRole')
