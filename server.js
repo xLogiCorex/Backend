@@ -1,3 +1,5 @@
+
+require('dotenv').config()
 const express = require('express')
 const JWT = require('jsonwebtoken')
 const dbHandler = require('./dbHandler')
@@ -5,9 +7,14 @@ const cors = require('cors')
 require('dotenv').config()
 const PORT = process.env.PORT
 const SECRET = process.env.SECRET
+const PORT = process.env.PORT || 3000
+const dbHandler = require('./dbHandler')
+
+
 const app = express().use(express.json(),cors())
 const bcrypt = require('bcrypt')
 const axios = require('axios')
+
 
 dbHandler.userTable.sync({ alter: true })
 dbHandler.productTable.sync({ alter: true })
@@ -372,5 +379,19 @@ function authorizeRole(roles = []) {
         next();
     };
 }
+const users = require('./users');
+const products = require('./products');
+const categories = require('./categories');
+const subcategories = require('./subcategories');
+const partners = require('./partners');
+const orders = require('./orders');
+app.use("/",users)
+app.use("/",products)
+app.use("/",categories)
+app.use("/",subcategories)
+app.use("/",partners)
+app.use("/",orders)
+
+app.use((req, res) => res.status(404).json({ message: "Útvonal nem található" }));
 
 app.listen(PORT, () => {console.log(`A szerver a  ${PORT} porton fut.`);});
