@@ -149,7 +149,7 @@ describe('/login végpont tesztelése', () => {
         const res = await request(app)
             .get('/users')
             .set('Authorization', 'Bearer eznemjwt');
-        expect([401]).toContain(res.statusCode);
+        expect([403]).toContain(res.statusCode);
         expect(res.body).toHaveProperty('message');
         expect(res.body.message).toMatch(/token|érvénytelen|hitelesítés/i);
     });
@@ -164,7 +164,7 @@ describe('/login végpont tesztelése', () => {
         const res = await request(app)
             .get('/users')
             .set('Authorization', `Bearer ${expiredToken}`);
-        expect([401]).toContain(res.statusCode);
+        expect([403]).toContain(res.statusCode);
         expect(res.body).toHaveProperty('message');
         expect(res.body.message).toMatch(/lejárt|expire|token/i);
     });
@@ -179,7 +179,7 @@ describe('/login végpont tesztelése', () => {
         const res = await request(app)
             .get('/users')
             .set('Authorization', `Bearer ${fakeToken}`);
-        expect([401]).toContain(res.statusCode);
+        expect([403]).toContain(res.statusCode);
         expect(res.body).toHaveProperty('message');
         expect(res.body.message).toMatch(/érvénytelen|hitelesítés|token/i);
     });
