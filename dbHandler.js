@@ -74,6 +74,11 @@ exports.productTable = dbHandler.define('product', {
     allowNull: false,
     defaultValue: 0
   },
+  availableStock: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  },
   minStockLevel: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -246,6 +251,10 @@ exports.orderItemTable = dbHandler.define('orderItem', {
     allowNull: false
   },
   unitPrice: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  totalPrice: {
     type: DataTypes.INTEGER,
     allowNull: false
   }
