@@ -161,7 +161,7 @@ exports.partnerTable = dbHandler.define('partner', {
   }
 })
 
-exports.stockMovementTable = dbHandler.define('stockMovement', {
+exports.stockMovementTable = dbHandler.define('stockmovement', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -231,7 +231,7 @@ exports.orderTable = dbHandler.define('order', {
   }
 })
 
-exports.orderItemTable = dbHandler.define('orderItem', {
+exports.orderItemTable = dbHandler.define('orderitem', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
