@@ -119,7 +119,7 @@ router.post('/login', async (req,res) => {
             {id: userLogin.id, email: userLogin.email, role: userLogin.role}, SECRET, { expiresIn: '1h' } 
         )
 
-        return res.status(200).json({token, role:userLogin.role, message: 'Sikeres bejelentkezés!'})
+        return res.status(200).json({token: token, role:userLogin.role, message: 'Sikeres bejelentkezés!'})
 
     }
     catch(error){
