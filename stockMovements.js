@@ -18,7 +18,8 @@ router.get('/stock-movements', authenticateJWT(), authorizeRole(['admin']), asyn
 // Készletmozgás létrehozása
 router.post('/stock-movements', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
     try {
-        const { productId, type, quantity, note, userId } = req.body;
+        const { productId, type, quantity, note } = req.body;
+        const userId = req.user.id;
 
         if (!productId || !type || !quantity || !userId) {
             return res.status(400).json({ message: "Hiányzó mezők: productId, type, quantity, userId" });
@@ -60,7 +61,8 @@ router.post('/stock-movements', authenticateJWT(), authorizeRole(['admin']), asy
         // Termék készlet frissítése
         await product.update({ 
             stockQuantity: newQuantity,
-            availableStock: newQuantity
+            availableStock: newQuantity,
+            isActive: newQuantity > 0
         });
 
         res.status(201).json({ message: "Készletmozgás rögzítve.", movement });
@@ -68,6 +70,19 @@ router.post('/stock-movements', authenticateJWT(), authorizeRole(['admin']), asy
     catch (error) {
         res.status(500).json({ message: "Szerverhiba", error: error.message });
     }
+
 });
+/*
+// Saját készletmozgások listázása 
+router.get('/stock-movements/my', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const myMovements = await stockMovementTable.findAll({ where: { userId }, order: [['date', 'DESC']] });
+        res.status(200).json(myMovements);
+    } 
+    catch (error) {
+        res.status(500).json({ message: "Szerverhiba", error: error.message });
+    }
+});*/
 
 module.exports = router;
