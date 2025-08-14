@@ -73,9 +73,6 @@ router.post('/register', authenticateJWT(), authorizeRole(['admin']), async (req
     else if(newRole == 'SALES'){
         newRole = 'sales'
     }
-    else{
-        newRole = 'user'
-    }
 
     // Jelszó titkosítás
     const hashedPassword = await bcrypt.hash(newPassword, 10);
