@@ -26,12 +26,16 @@ const categories = require('./categories');
 const subcategories = require('./subcategories');
 const partners = require('./partners');
 const orders = require('./orders');
+const stockMovements = require('./stockMovements');
+const invoices = require('./invoices');
 app.use("/",users)
 app.use("/",products)
 app.use("/",categories)
 app.use("/",subcategories)
 app.use("/",partners)
 app.use("/",orders)
+app.use("/", stockMovements);
+app.use("/", invoices);
 
 app.use((req, res) => res.status(404).json({ message: "Útvonal nem található" }));
 

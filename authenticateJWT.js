@@ -23,7 +23,7 @@ function authenticateJWT(){
             next()
         } 
         catch (error) {
-            return res.status(403).json({message:'Érvénytelen token!', error: error.message}) 
+            return res.status(401).json({message:'Érvénytelen token!', error: error.message}) 
         }
     }
 }

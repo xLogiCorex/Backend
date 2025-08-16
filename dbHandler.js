@@ -168,7 +168,7 @@ exports.stockMovementTable = dbHandler.define('stockMovement', {
     allowNull: false
   },
   type: {
-    type: DataTypes.ENUM('in', 'out', 'internal'),
+    type: DataTypes.ENUM('in', 'out', 'transfer'),
     allowNull: false
   },
   quantity: {
@@ -188,7 +188,7 @@ exports.stockMovementTable = dbHandler.define('stockMovement', {
     type: DataTypes.STRING,
     allowNull: true
   },
-  documentNumber: {
+  movementNumber: {
     type: DataTypes.STRING,
     allowNull: true
   }
@@ -220,9 +220,14 @@ exports.orderTable = dbHandler.define('order', {
     defaultValue: DataTypes.NOW
   },
   status: {
-    type: DataTypes.ENUM('new', 'fulfilled'),
+    type: DataTypes.ENUM('new', 'completed', 'cancelled'),
     allowNull: false,
     defaultValue: 'new'
+  },
+  invoiceId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: null
   }
 })
 
@@ -275,7 +280,7 @@ exports.invoiceTable = dbHandler.define('invoice', {
     type: DataTypes.UUID,
     allowNull: false
   },
-  date: {
+  issueDate: {
     type: DataTypes.DATE,
     allowNull: false,
     defaultValue: DataTypes.NOW
@@ -288,7 +293,7 @@ exports.invoiceTable = dbHandler.define('invoice', {
     type: DataTypes.DECIMAL(10,2),
     allowNull: false
   },
-  totalVAT: {
+  totalVAT:{
     type: DataTypes.DECIMAL(10,2),
     allowNull: false
   },
@@ -300,7 +305,8 @@ exports.invoiceTable = dbHandler.define('invoice', {
     type: DataTypes.STRING,
     allowNull: true
   }
-})
+});
+
 
 exports.logTable = dbHandler.define('log', {
   id: {

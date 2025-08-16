@@ -67,15 +67,13 @@ router.post('/register', authenticateJWT(), authorizeRole(['admin']), async (req
         return res.status(409).json({message: 'Már van regisztráció ezzel a felhasználónévvel!'})
     }
 
-    if(newRole == 'ADMIN' + SECRET){
+    if(newRole == 'admin' + SECRET){
         newRole = 'admin'
     }
-    else if(newRole == 'SALES'){
+    else if(newRole == 'sales' + SECRET){
         newRole = 'sales'
     }
-    else{
-        newRole = 'user'
-    }
+  
 
     // Jelszó titkosítás
     const hashedPassword = await bcrypt.hash(newPassword, 10);
