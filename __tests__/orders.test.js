@@ -3,9 +3,9 @@ process.env.SECRET = 'teszttitok';
 const express = require('express');
 const supertest = require('supertest');
 const jwt = require('jsonwebtoken');
-jest.mock('./dbHandler');
-const dbHandler = require('./dbHandler');
-const ordersRouter = require('./orders'); // a te routered neve lehet más, írd be helyesen!
+jest.mock('../dbHandler');
+const dbHandler = require('../dbHandler');
+const ordersRouter = require('../orders'); // a te routered neve lehet más, írd be helyesen!
 
 describe('/orders endpoint tesztek', () => {
     const app = express();

@@ -2,20 +2,27 @@
 
 const supertest = require('supertest')
 const express = require('express')
-const dbHandler = require('./dbHandler')
-const subcategoriesRoute = require('./subcategories')
+const dbHandler = require('../dbHandler')
+const subcategoriesRoute = require('../subcategories')
 
 // Middleware-ek mockolása
-jest.mock('./authenticateJWT', () => () => (req, res, next) => next())
-jest.mock('./authorizeRole', () => () => (req, res, next) => next())
+jest.mock('../authenticateJWT', () => () => (req, res, next) => {
+  req.user = { id: 1 }; // Feltételezett belépett felhasználó id-je
+  next();
+});
+jest.mock('../authorizeRole', () => () => (req, res, next) => next())
 
 // DB mockolása
-jest.mock('./dbHandler', () => ({
+jest.mock('../dbHandler', () => ({
     subcategoryTable: {
         findAll: jest.fn(),
         findOne: jest.fn(),
         create: jest.fn()
+    },
+    logTable: {
+        create: jest.fn()
     }
+    
 }))
 
 describe('/subcategories végpont tesztelése', () => {
@@ -44,8 +51,8 @@ describe('/subcategories végpont tesztelése', () => {
     test('POST /subcategories – már létező -> 409', async () => {
         dbHandler.subcategoryTable.findOne.mockResolvedValue({ id: 1 })
         const res = await supertest(app).post('/subcategories').send({
-        newName: 'Alkategória 1',
-        newCategoryId: 1
+            newName: 'Alkategória 1',
+            newCategoryId: 1
         })
         expect(res.statusCode).toBe(409)
         expect(res.body.message).toMatch(/már létezik/i)
@@ -53,10 +60,10 @@ describe('/subcategories végpont tesztelése', () => {
 
     test('POST /subcategories – sikeres létrehozás -> 201', async () => {
         dbHandler.subcategoryTable.findOne.mockResolvedValue(null)
-        dbHandler.subcategoryTable.create.mockResolvedValue({})
+        dbHandler.subcategoryTable.create.mockResolvedValue({ id: 1 }) 
         const res = await supertest(app).post('/subcategories').send({
-        newName: 'Új Alkategória',
-        newCategoryId: 1
+            newName: 'Új Alkategória',
+            newCategoryId: 1
         })
         expect(res.statusCode).toBe(201)
         expect(res.body.message).toMatch(/sikeresen rögzítve/i)
@@ -66,8 +73,8 @@ describe('/subcategories végpont tesztelése', () => {
         dbHandler.subcategoryTable.findOne.mockResolvedValue(null)
         dbHandler.subcategoryTable.create.mockRejectedValue(new Error('DB error'))
         const res = await supertest(app).post('/subcategories').send({
-        newName: 'Új Alkategória',
-        newCategoryId: 1
+            newName: 'Új Alkategória',
+            newCategoryId: 1
         })
         expect(res.statusCode).toBe(500)
         expect(res.body.message).toMatch(/sikertelen volt/i)

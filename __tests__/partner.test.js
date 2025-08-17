@@ -2,18 +2,24 @@
 
 const supertest = require('supertest')
 const express = require('express')
-const dbHandler = require('./dbHandler')
-const partnersRoute = require('./partners')
+const dbHandler = require('../dbHandler')
+const partnersRoute = require('../partners')
 
 // Middleware-ek mockolása
-jest.mock('./authenticateJWT', () => () => (req, res, next) => next())
-jest.mock('./authorizeRole', () => () => (req, res, next) => next())
+jest.mock('../authenticateJWT', () => () => (req, res, next) => {
+    req.user = { id: '11111111-1111-1111-1111-111111111111' };  // UUID formátumú user id a logTable miatt
+    next();
+});
+jest.mock('../authorizeRole', () => () => (req, res, next) => next())
 
 // DB mockolása
-jest.mock('./dbHandler', () => ({
+jest.mock('../dbHandler', () => ({
     partnerTable: {
         findAll: jest.fn(),
         findOne: jest.fn(),
+        create: jest.fn()
+    },
+    logTable: {
         create: jest.fn()
     }
 }))
@@ -48,7 +54,7 @@ describe('/partners végpont tesztelése', () => {
         newAddress: 'Cím',
         newContactPerson: 'Név',
         newEmail: 'valami@valami.hu',
-        newPhone: '123456789'
+        newPhone: '+3615566565'
         })
         expect(res.statusCode).toBe(401)
         expect(res.body.message).toMatch(/legalább 4 karakter/i)
@@ -61,7 +67,7 @@ describe('/partners végpont tesztelése', () => {
         newAddress: 'Cím',
         newContactPerson: 'Név',
         newEmail: 'email@cég.hu',
-        newPhone: '123456789'
+        newPhone: '+3615566565'
         })
         expect(res.statusCode).toBe(400)
         expect(res.body.message).toMatch(/Hibás adószám/i)
@@ -74,7 +80,7 @@ describe('/partners végpont tesztelése', () => {
         newAddress: 'Cím',
         newContactPerson: 'Név',
         newEmail: 'nemjó',
-        newPhone: '123456789'
+        newPhone: '+3615566565'
         })
         expect(res.statusCode).toBe(400)
         expect(res.body.message).toMatch(/Hibás email/i)
@@ -88,7 +94,7 @@ describe('/partners végpont tesztelése', () => {
         newAddress: 'Cím',
         newContactPerson: 'Név',
         newEmail: 'email@cég.hu',
-        newPhone: '123456789'
+        newPhone: '+3615566565'
         })
         expect(res.statusCode).toBe(409)
         expect(res.body.message).toMatch(/már létezik/i)
@@ -96,14 +102,15 @@ describe('/partners végpont tesztelése', () => {
 
     test('POST /partners – sikeres létrehozás -> 201', async () => {
         dbHandler.partnerTable.findOne.mockResolvedValue(null)
-        dbHandler.partnerTable.create.mockResolvedValue({})
+        dbHandler.partnerTable.create.mockResolvedValue({id:111})
+        dbHandler.logTable.create.mockResolvedValue({})
         const res = await supertest(app).post('/partners').send({
         newName: 'Partner Kft',
         newTaxNumber: '12345678-1-12',
         newAddress: 'Cím',
         newContactPerson: 'Név',
-        newEmail: 'email@cég.hu',
-        newPhone: '123456789'
+        newEmail: 'email@ceg.hu',
+        newPhone: '+36205086091'
         })
         expect(res.statusCode).toBe(201)
         expect(res.body.message).toMatch(/sikeresen rögzítve/i)
@@ -118,7 +125,7 @@ describe('/partners végpont tesztelése', () => {
         newAddress: 'Cím',
         newContactPerson: 'Név',
         newEmail: 'email@cég.hu',
-        newPhone: '123456789'
+        newPhone: '+9615566565'
         })
         expect(res.statusCode).toBe(500)
         expect(res.body.message).toMatch(/sikertelen volt/i)

@@ -8,11 +8,14 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 // A dbHandler-t mockoljuk, mert nem akarunk éles adatbázist használni teszt közben.
 // Így el tudjuk dönteni, mit adjon vissza, mikor hívják!
-jest.mock('./dbHandler');
-const dbHandler = require('./dbHandler');
+jest.mock('../dbHandler');
+jest.mock('../log', () => ({
+  logAction: jest.fn(() => Promise.resolve())
+}));
+const dbHandler = require('../dbHandler');
 
 // A /login végponthoz tartozó kódot teszteljük.
-const usersLoginTest = require('./users');
+const usersLoginTest = require('../users');
 
 describe('/login végpont tesztelése', () => {
     // Létrehozunk egy mini express appot, amin csak ezt a routert teszteljük.
@@ -112,9 +115,7 @@ describe('/login végpont tesztelése', () => {
         expect(res.body).toHaveProperty('error');
     });
 
-
     //token ellenőrzése tesztelése
-    
     test('a tokenben megfelelő user adatok legyenek', async () => {
         //mockoljuk a DB-t, hogy visszaadjon egy usert.
         const hash = await bcrypt.hash('titok', 10);
@@ -183,5 +184,4 @@ describe('/login végpont tesztelése', () => {
         expect(res.body).toHaveProperty('message');
         expect(res.body.message).toMatch(/érvénytelen|hitelesítés|token/i);
     });
-
 });

@@ -5,9 +5,7 @@ const cors = require('cors')
 const PORT = process.env.PORT || 3000
 const dbHandler = require('./dbHandler')
 
-
 const app = express().use(express.json(),cors())
-
 
 dbHandler.userTable.sync({ alter: true })
 dbHandler.productTable.sync({ alter: true })

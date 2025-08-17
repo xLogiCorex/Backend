@@ -5,33 +5,32 @@ const dbHandler = require('./dbHandler')
 const authenticateJWT = require('./authenticateJWT')
 const authorizeRole = require('./authorizeRole')
 
-//router.use("/",authenticateJWT)
-//router.use("/",authorizeRole)
-
-router.get('/orders', authenticateJWT(), authorizeRole(['sales', 'admin']), async (req, res) => {
-    res.status(200).json(await dbHandler.partnerTable.findAll())
-})
-
-router.get('/orders/my', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
+router.get('/orders', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
     try {
-        const userId = req.user.id;
-        const myOrders = await dbHandler.orderTable.findAll({
-            where: { user: userId },
+        const where = {};
+
+        if (req.user.role === 'sales') {
+            where.user = req.user.id;  // sales csak a saját rendelések
+        }
+
+        const orders = await dbHandler.orderTable.findAll({
+            where,
             order: [['date', 'DESC']]
         });
-        res.status(200).json(myOrders);
+
+        res.status(200).json(orders);
     } catch (error) {
         res.status(500).json({ message: "Szerverhiba", error: error.message });
     }
 });
 
 
+
 router.post('/orders', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
     let { newOrder, newPartner, newUser, newDate, newStatus } = req.body;
 
-    if (!newOrder || !newPartner || !newUser) {
+    if (!newOrder || !newPartner || !newUser)
         return res.status(400).json({ message: 'Minden mező kitöltése kötelező!' });
-    }
 
     const oneOrder = await dbHandler.orderTable.findOne({
         where: { orderNumber: newOrder }
