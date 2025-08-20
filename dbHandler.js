@@ -1,6 +1,5 @@
-//Teszt
 const { Sequelize, DataTypes } = require("sequelize");
-const dbHandler = new Sequelize('project', 'root', '', {host:'127.1.1.1', dialect:'mysql'})
+const dbHandler = new Sequelize('project', 'root', '', { host: '127.1.1.1', dialect: 'mysql' })
 exports.userTable = dbHandler.define('user', {
   id: {
     type: DataTypes.UUID,
@@ -82,6 +81,11 @@ exports.productTable = dbHandler.define('product', {
   minStockLevel: {
     type: DataTypes.INTEGER,
     allowNull: true,
+    defaultValue: 0
+  },
+  availableStock: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
     defaultValue: 0
   },
   isActive: {
@@ -173,7 +177,7 @@ exports.stockMovementTable = dbHandler.define('stockmovement', {
     allowNull: false
   },
   type: {
-    type: DataTypes.ENUM('in', 'out', 'internal'),
+    type: DataTypes.ENUM('in', 'out', 'transfer'),
     allowNull: false
   },
   quantity: {
@@ -193,9 +197,13 @@ exports.stockMovementTable = dbHandler.define('stockmovement', {
     type: DataTypes.STRING,
     allowNull: true
   },
-  documentNumber: {
+  movementNumber: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  transferReason: {
+    type: DataTypes.STRING,
+    allowNull: true,
   }
 })
 
@@ -225,9 +233,14 @@ exports.orderTable = dbHandler.define('order', {
     defaultValue: DataTypes.NOW
   },
   status: {
-    type: DataTypes.ENUM('new', 'fulfilled'),
+    type: DataTypes.ENUM('new', 'completed','paid','under transport' ,'cancelled'),
     allowNull: false,
     defaultValue: 'new'
+  },
+  invoiceId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: null
   }
 })
 
@@ -284,7 +297,7 @@ exports.invoiceTable = dbHandler.define('invoice', {
     type: DataTypes.UUID,
     allowNull: false
   },
-  date: {
+  issueDate: {
     type: DataTypes.DATE,
     allowNull: false,
     defaultValue: DataTypes.NOW
@@ -294,22 +307,22 @@ exports.invoiceTable = dbHandler.define('invoice', {
     allowNull: false
   },
   totalNet: {
-    type: DataTypes.DECIMAL(10,2),
+    type: DataTypes.DECIMAL(10, 2),
     allowNull: false
   },
   totalVAT: {
-    type: DataTypes.DECIMAL(10,2),
+    type: DataTypes.DECIMAL(10, 2),
     allowNull: false
   },
   totalGross: {
-    type: DataTypes.DECIMAL(10,2),
+    type: DataTypes.DECIMAL(10, 2),
     allowNull: false
   },
   note: {
     type: DataTypes.STRING,
     allowNull: true
   }
-})
+});
 
 exports.logTable = dbHandler.define('log', {
   id: {
@@ -322,26 +335,27 @@ exports.logTable = dbHandler.define('log', {
     type: DataTypes.UUID,
     allowNull: false
   },
-  date: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: DataTypes.NOW
+  action: {
+    type: DataTypes.ENUM('STOCK_IN', 'STOCK_OUT', 'STOCK_TRANSFER', 'LOGIN_SUCCESS', 'LOGIN_FAIL', 'USER_REGISTER', 'PRODUCT_CREATE', 'PRODUCT_UPDATE',
+      'PARTNER_CREATE', 'PARTNER_UPDATE', 'ORDER_CREATE', 'ORDER_UPDATE', 'INVOICE_CREATE', 'INVOICE_UPDATE'),
+    allowNull: false
   },
-  entityType: {
+  targetType: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
+    defaultValue: ''
   },
-  operation: {
-    type: DataTypes.ENUM('create', 'update', 'delete'),
-    allowNull: false
-  },
-  entityId: {
+  targetId: {
     type: DataTypes.INTEGER,
     allowNull: false
   },
-  changes: {
+  payload: {
     type: DataTypes.JSON,
     allowNull: true
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
   }
-})
-//fel
+});

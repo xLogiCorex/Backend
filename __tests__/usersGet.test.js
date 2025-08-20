@@ -5,11 +5,11 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 // A dbHandler-t mockoljuk, mert nem akarunk éles adatbázist használni teszt közben.
 // Így el tudjuk dönteni, mit adjon vissza, mikor hívják!
-jest.mock('./dbHandler');
-const dbHandler = require('./dbHandler');
+jest.mock('../dbHandler');
+const dbHandler = require('../dbHandler');
 
 // A /users végponthoz tartozó kódot teszteljük.
-const usersGetTest = require('./users');
+const usersGetTest = require('../users');
 describe('/users végpont tesztelése', () => {
     // Létrehozunk egy mini express appot, amin csak ezt a routert teszteljük.
     const app = express();
