@@ -1,8 +1,19 @@
 process.env.SECRET = 'teszttitok';
-
+jest.mock('pdfkit', () => {
+  return jest.fn().mockImplementation(() => {
+    return {
+      pipe: jest.fn(),
+      fontSize: jest.fn().mockReturnThis(),
+      text: jest.fn().mockReturnThis(),
+      moveDown: jest.fn().mockReturnThis(),
+      end: jest.fn()
+    };
+  });
+});
 const express = require('express');
 const supertest = require('supertest');
 const jwt = require('jsonwebtoken');
+
 jest.mock('../dbHandler');
 const dbHandler = require('../dbHandler');
 const invoicesRouter = require('../invoices');
@@ -22,7 +33,7 @@ describe('/invoices endpoint tesztek', () => {
     test('GET /invoices – sales token → 200 és csak saját számlák', async () => {
         const salesUserId = 2; // például sales user id
         dbHandler.invoiceTable.findAll.mockImplementation(({ where }) => {
-            expect(where).toEqual({ user: salesUserId }); // ellenőrizzük, hogy szűr-e user-re
+            expect(where).toEqual({ userId: salesUserId }); // ellenőrizzük, hogy szűr-e user-re
             return Promise.resolve([{ id: 10, invoiceNumber: 'SZ-2025-00010', user: salesUserId }]);
         });
 

@@ -26,6 +26,7 @@ const partners = require('./partners');
 const orders = require('./orders');
 const stockMovements = require('./stockMovements');
 const invoices = require('./invoices');
+const { router: logs, logAction } = require('./log');
 app.use("/",users)
 app.use("/",products)
 app.use("/",categories)
@@ -34,6 +35,7 @@ app.use("/",partners)
 app.use("/",orders)
 app.use("/", stockMovements);
 app.use("/", invoices);
+app.use('/', logs);
 
 app.use((req, res) => res.status(404).json({ message: "Útvonal nem található" }));
 
