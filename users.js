@@ -11,8 +11,64 @@ const authenticateJWT = require('./authenticateJWT')
 const authorizeRole = require('./authorizeRole')
 
 router.get('/users', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
-  res.status(200).json(await dbHandler.userTable.findAll())
-})
+  try {
+    const users = await dbHandler.userTable.findAll({ attributes: ['id', 'name', 'email', 'role', 'isActive'] });
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Hiba a felhasználók lekérésekor.', error: error.message });
+  }
+});
+
+
+// csak sales regisztrálható innen, admin nem - beszéljük át, mert szerintem nem kell bele
+router.post('/users', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
+  const { name, email, password, role } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ message: 'Minden mező kitöltése kötelező!' });
+  }
+
+  if (role !== 'sales') {
+    return res.status(400).json({ message: 'Csak sales szerepkör hozható létre itt.' });
+  }
+
+  // Validációk jöhetnek itt (név hossz, jelszó erősség, email formátum)
+
+  try {
+    // Ellenőrzés, hogy nincs-e már ilyen email vagy név
+    const emailExists = await dbHandler.userTable.findOne({ where: { email } });
+    if (emailExists) return res.status(409).json({ message: 'Ez az email már használatban van.' });
+
+    const nameExists = await dbHandler.userTable.findOne({ where: { name } });
+    if (nameExists) return res.status(409).json({ message: 'Ez a felhasználónév már foglalt.' });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await dbHandler.userTable.create({
+      name,
+      email: email.toLowerCase(),
+      password: hashedPassword,
+      role,
+      isActive: true
+    });
+
+    await logAction({
+      userId: req.user.id,
+      action: 'USER_REGISTER',
+      targetType: 'User',
+      targetId: newUser.id,
+      payload: { name, email, role },
+      req
+    });
+
+    res.status(201).json({ message: 'Új értékesítő sikeresen létrehozva.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Hiba történt az értékesítő létrehozása során.', error: error.message });
+  }
+});
+
+
+
 
 router.post('/register', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
   let { newName, newEmail, newPassword, newRole, newIsActive } = req.body;
@@ -94,8 +150,6 @@ router.post('/register', authenticateJWT(), authorizeRole(['admin']), async (req
 
   catch (error) {
     return res.status(500).json({ message: 'Hiba történt a regisztráció során. Kérjük, próbáld újra később!', error: error.message })
-
-
   }
 })
 
@@ -165,5 +219,37 @@ router.post('/login', async (req, res) => {
     return res.status(500).json({ message: 'Váratlan hiba történt a bejelentkezés során. Kérjük, próbáld meg később újra!', error: error.message });
   }
 });
+
+// Felhasználó aktiválása/inaktiválása
+router.put('/users/:id/status', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
+  const userId = req.params.id;
+  const { isActive } = req.body;
+
+  if (typeof isActive !== 'boolean') {
+    return res.status(400).json({ message: 'Az isActive mezőnek boolean értéknek kell lennie.' });
+  }
+
+  try {
+    const user = await dbHandler.userTable.findByPk(userId);
+    if (!user) return res.status(404).json({ message: 'Nem található a felhasználó.' });
+
+    user.isActive = isActive;
+    await user.save();
+
+    await logAction({
+      userId: req.user.id,
+      action: 'USER_STATUS_CHANGE',
+      targetType: 'User',
+      targetId: user.id,
+      payload: { isActive },
+      req
+    });
+
+    res.status(200).json({ message: `Felhasználó ${isActive ? 'aktiválva' : 'inaktiválva'} lett.` });
+  } catch (error) {
+    res.status(500).json({ message: 'Hiba történt a státusz módosításakor.', error: error.message });
+  }
+});
+
 
 module.exports = router

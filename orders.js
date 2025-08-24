@@ -54,7 +54,7 @@ router.post('/orders', authenticateJWT(), authorizeRole(['admin', 'sales']), asy
     }
 })
 
-router.put('/orders/:id/status', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
+router.put('/orders/:id/status', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
     const orderId = req.params.id;
     const { newStatus } = req.body;
 
@@ -72,6 +72,9 @@ router.put('/orders/:id/status', authenticateJWT(), authorizeRole(['admin']), as
         if (order.status !== 'new')
             return res.status(400).json({ message: 'Csak "new" státuszú rendelés állítható át.' });
 
+        if (req.user.role === 'sales' && order.userId !== req.user.id)
+            return res.status(403).json({ message: 'Csak a saját rendelésedet módosíthatod!' });
+        
         order.status = newStatus;
         await order.save();
 

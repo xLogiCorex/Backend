@@ -114,3 +114,114 @@ describe('/register végpont tesztelése', () => {
     expect(res.body.message).toMatch(/hiba történt/i);
   });
 });
+
+describe('/users POST végpont tesztelése', () => {
+  const app = express();
+  app.use(express.json(), usersRouter);
+
+  const adminToken = jwt.sign({ id: 1, email: "admin@teszt.hu", role: "admin" }, process.env.SECRET, { expiresIn: '1h' });
+  const salesToken = jwt.sign({ id: 2, email: "user@teszt.hu", role: "sales" }, process.env.SECRET, { expiresIn: '1h' });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('nincs token - 401/403', async () => {
+    const res = await supertest(app).post('/users').send({});
+    expect([401, 403]).toContain(res.statusCode);
+    expect(res.body).toHaveProperty('message');
+  });
+
+  test('nem admin token - 403', async () => {
+    const res = await supertest(app).post('/users').set('Authorization', `Bearer ${salesToken}`).send({
+      name: 'Test Sales',
+      email: 'sales@teszt.hu',
+      password: 'pw1234',
+      role: 'sales'
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  test('hiányzó mezők - 400', async () => {
+    const res = await supertest(app).post('/users').set('Authorization', `Bearer ${adminToken}`).send({
+      name: '',
+      email: '',
+      password: '',
+      role: 'sales'
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  test('rossz szerepkör (nem sales) - 400', async () => {
+    const res = await supertest(app).post('/users').set('Authorization', `Bearer ${adminToken}`).send({
+      name: 'AdminUser',
+      email: 'admin@teszt.hu',
+      password: 'pw1234',
+      role: 'admin'
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch(/sales/i);
+  });
+
+  test('már létező email vagy név - 409', async () => {
+    // Első hívás emailre találatot ad
+    dbHandler.userTable.findOne.mockImplementation(({ where }) => {
+      if (where.email === 'exists@teszt.hu') return Promise.resolve({ id: 1 });
+      if (where.name === 'existsname') return Promise.resolve({ id: 1 });
+      return Promise.resolve(null);
+    });
+
+    let res = await supertest(app).post('/users').set('Authorization', `Bearer ${adminToken}`).send({
+      name: 'existsname',
+      email: 'newemail@teszt.hu',
+      password: 'pw1234',
+      role: 'sales'
+    });
+    expect(res.statusCode).toBe(409);
+
+    res = await supertest(app).post('/users').set('Authorization', `Bearer ${adminToken}`).send({
+      name: 'newname',
+      email: 'exists@teszt.hu',
+      password: 'pw1234',
+      role: 'sales'
+    });
+    expect(res.statusCode).toBe(409);
+  });
+
+  test('sikeres felhasználó létrehozás - 201', async () => {
+    dbHandler.userTable.findOne.mockResolvedValue(null);
+    dbHandler.userTable.create.mockResolvedValue({
+      id: 123,
+      name: 'salesuser',
+      email: 'salesuser@teszt.hu',
+      role: 'sales',
+      isActive: true
+    });
+
+    const res = await supertest(app).post('/users').set('Authorization', `Bearer ${adminToken}`).send({
+      name: 'salesuser',
+      email: 'salesuser@teszt.hu',
+      password: 'pw1234',
+      role: 'sales'
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body).toHaveProperty('message');
+    expect(res.body.message).toMatch(/sikeresen/i);
+  });
+
+  test('adatbázis hiba esetén - 500', async () => {
+    dbHandler.userTable.findOne.mockResolvedValue(null);
+    dbHandler.userTable.create.mockRejectedValue(new Error('DB hiba'));
+
+    const res = await supertest(app).post('/users').set('Authorization', `Bearer ${adminToken}`).send({
+      name: 'erroruser',
+      email: 'error@teszt.hu',
+      password: 'pw1234',
+      role: 'sales'
+    });
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toMatch(/hiba/i);
+  });
+});

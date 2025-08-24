@@ -96,7 +96,7 @@ describe('/orders endpoint tesztek', () => {
         expect([401, 403]).toContain(res.statusCode);
     });
 
-    test('POST /orders – hiányzik kötelező mező → 400', async () => {
+    test('POST /orders – hiányzik a kötelező mező → 400', async () => {
         const res = await supertest(app)
             .post('/orders')
             .set('Authorization', `Bearer ${adminToken}`)

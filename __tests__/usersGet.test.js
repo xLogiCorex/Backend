@@ -46,4 +46,28 @@ describe('/users végpont tesztelése', () => {
         expect(Array.isArray(res.body)).toBe(true);
         expect(res.body[0]).toHaveProperty('name');
     });
+
+    // Státusz váltás tesztek
+    test('PUT /users/:id/status - érvénytelen isActive típus -> 400', async () => {
+        const res = await supertest(app).put('/users/1/status').set('Authorization', `Bearer ${adminToken}`).send({ isActive: 'nemboolean' });
+        expect(res.statusCode).toBe(400);
+    });
+
+    test('PUT /users/:id/status - nem létező user -> 404', async () => {
+        dbHandler.userTable.findByPk.mockResolvedValue(null);
+        const res = await supertest(app).put('/users/999/status').set('Authorization', `Bearer ${adminToken}`).send({ isActive: true });
+        expect(res.statusCode).toBe(404);
+    });
+
+    test('PUT /users/:id/status - sikeres státuszváltás -> 200', async () => {
+        const mockUser = { id: 1, isActive: true, save: jest.fn().mockResolvedValue(true) };
+        dbHandler.userTable.findByPk.mockResolvedValue(mockUser);
+
+        const res = await supertest(app).put('/users/1/status').set('Authorization', `Bearer ${adminToken}`).send({ isActive: false });
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.message).toMatch(/inaktiválva/i);
+        expect(mockUser.isActive).toBe(false);
+        expect(mockUser.save).toHaveBeenCalled();
+    });
 });
