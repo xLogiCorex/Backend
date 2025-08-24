@@ -198,22 +198,27 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'A megadott jelszó helytelen.' });
     }
 
-    // Sikeres bejelentkezés logolása
-    await logAction({
-      userId: userLogin.id,
-      action: 'LOGIN_SUCCESS',
-      targetType: 'User',
-      targetId: userLogin.id,
-      payload: { email: newEmail }
-    });
 
     const token = JWT.sign(
       { id: userLogin.id, email: userLogin.email, role: userLogin.role },
       SECRET,
       { expiresIn: '1h' }
     );
+ // Sikeres bejelentkezés logolása
+    await logAction({
+      userId: userLogin.id,
+      action: 'LOGIN_SUCCESS',
+      targetType: 'User',
+      targetId: userLogin.id,
+      payload: { email: newEmail, ip: req.ip,
+          userAgent: req.headers['user-agent'] },
+      req
+    });
+
+     
 
     return res.status(200).json({ token, role: userLogin.role, message: 'Sikeres bejelentkezés!' });
+    
   } catch (error) {
     // Váratlan hiba esetén logolhatod, vagy csak visszaadsz hibát
     return res.status(500).json({ message: 'Váratlan hiba történt a bejelentkezés során. Kérjük, próbáld meg később újra!', error: error.message });
