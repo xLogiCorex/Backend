@@ -5,11 +5,11 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 // A dbHandler-t mockoljuk, mert nem akarunk éles adatbázist használni teszt közben.
 // Így el tudjuk dönteni, mit adjon vissza, mikor hívják!
-jest.mock('./dbHandler');
-const dbHandler = require('./dbHandler');
+jest.mock('../dbHandler');
+const dbHandler = require('../dbHandler');
 
 // A /users végponthoz tartozó kódot teszteljük.
-const usersGetTest = require('./users');
+const usersGetTest = require('../users');
 describe('/users végpont tesztelése', () => {
     // Létrehozunk egy mini express appot, amin csak ezt a routert teszteljük.
     const app = express();
@@ -45,5 +45,29 @@ describe('/users végpont tesztelése', () => {
         expect(res.statusCode).toBe(200);
         expect(Array.isArray(res.body)).toBe(true);
         expect(res.body[0]).toHaveProperty('name');
+    });
+
+    // Státusz váltás tesztek
+    test('PUT /users/:id/status - érvénytelen isActive típus -> 400', async () => {
+        const res = await supertest(app).put('/users/1/status').set('Authorization', `Bearer ${adminToken}`).send({ isActive: 'nemboolean' });
+        expect(res.statusCode).toBe(400);
+    });
+
+    test('PUT /users/:id/status - nem létező user -> 404', async () => {
+        dbHandler.userTable.findByPk.mockResolvedValue(null);
+        const res = await supertest(app).put('/users/999/status').set('Authorization', `Bearer ${adminToken}`).send({ isActive: true });
+        expect(res.statusCode).toBe(404);
+    });
+
+    test('PUT /users/:id/status - sikeres státuszváltás -> 200', async () => {
+        const mockUser = { id: 1, isActive: true, save: jest.fn().mockResolvedValue(true) };
+        dbHandler.userTable.findByPk.mockResolvedValue(mockUser);
+
+        const res = await supertest(app).put('/users/1/status').set('Authorization', `Bearer ${adminToken}`).send({ isActive: false });
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.message).toMatch(/inaktiválva/i);
+        expect(mockUser.isActive).toBe(false);
+        expect(mockUser.save).toHaveBeenCalled();
     });
 });
