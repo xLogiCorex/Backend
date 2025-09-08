@@ -209,6 +209,7 @@ router.post('/login', async (req, res) => {
     return res.status(200).json({ token, role: userLogin.role, message: 'Sikeres bejelentkezés!' });
   } catch (error) {
     // Váratlan hiba esetén logolhatod, vagy csak visszaadsz hibát
+    console.error("Login hiba:", error);
     return res.status(500).json({ message: 'Váratlan hiba történt a bejelentkezés során. Kérjük, próbáld meg később újra!', error: error.message });
   }
 });
