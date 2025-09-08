@@ -1,6 +1,6 @@
-const express = require('express');
-const router = express.Router();
-const { orderTable, orderItemTable, productTable, invoiceTable } = require('./dbHandler');
+const express = require('express')
+const router = express.Router()
+const { orderTable, orderItemTable, productTable, stockMovementTable } = require('./dbHandler')
 
 const authenticateJWT = require('./authenticateJWT');
 const authorizeRole = require('./authorizeRole');
