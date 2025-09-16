@@ -25,19 +25,19 @@ router.post('/subcategories', authenticateJWT(), authorizeRole(['admin']), async
         return res.status(409).json({message: 'Ez az alkategórianév, ebben a főkategóriában már létezik!'})
 
     try{
-         const newSubCategory = await dbHandler.subcategoryTable.create({
+        const newSubCategory = await dbHandler.subcategoryTable.create({
             name: newName,
             categoryId: newCategoryId
         })
 
-         await logAction({
-      userId: req.user.id,
-      action: 'SUBCATEGORY_CREATED',
-      targetType: 'Subcategory',
-      targetId: newSubCategory.id,
-      payload: { name: newName, categoryId: newCategoryId },
-      req
-    });
+        await logAction({
+            userId: req.user.id,
+            action: 'SUBCATEGORY_CREATED',
+            targetType: 'Subcategory',
+            targetId: newSubCategory.id,
+            payload: { name: newName, categoryId: newCategoryId },
+            req
+        });
     
         return res.status(201).json({message: 'Alkategória sikeresen rögzítve!'})
     }

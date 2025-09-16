@@ -83,11 +83,6 @@ exports.productTable = dbHandler.define('product', {
     allowNull: true,
     defaultValue: 0
   },
-  availableStock: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0
-  },
   isActive: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
@@ -233,7 +228,9 @@ exports.orderTable = dbHandler.define('order', {
     defaultValue: DataTypes.NOW
   },
   status: {
-    type: DataTypes.ENUM('new', 'completed','paid','under transport' ,'cancelled'),
+    type: DataTypes.ENUM(
+      'new', 'confirmed', 'processing', 'completed', 'cancelled', 'on_hold'
+    ),
     allowNull: false,
     defaultValue: 'new'
   },
@@ -242,7 +239,7 @@ exports.orderTable = dbHandler.define('order', {
     allowNull: true,
     defaultValue: null
   }
-})
+});
 
 exports.orderItemTable = dbHandler.define('orderitem', {
   id: {

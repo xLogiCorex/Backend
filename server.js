@@ -1,4 +1,3 @@
-
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
@@ -7,16 +6,30 @@ const dbHandler = require('./dbHandler')
 
 const app = express().use(express.json(),cors())
 
-dbHandler.userTable.sync({ alter: true })
-dbHandler.productTable.sync({ alter: true })
-dbHandler.categoryTable.sync({ alter: true })
-dbHandler.subcategoryTable.sync({ alter: true })
-dbHandler.partnerTable.sync({ alter: true })
-dbHandler.stockMovementTable.sync({ alter: true })
-dbHandler.orderTable.sync({ alter: true })
-dbHandler.orderItemTable.sync({ alter: true })
-dbHandler.invoiceTable.sync({ alter: true })
-dbHandler.logTable.sync({ alter: true })
+// Sync táblák külön-külön, nem együtt
+async function syncTables() {
+    try {
+        console.log('🔄 Táblák szinkronizálása...');
+        
+        // Egyszerű sync, nincs force vagy alter
+        await dbHandler.userTable.sync();
+        await dbHandler.productTable.sync();
+        await dbHandler.categoryTable.sync();
+        await dbHandler.subcategoryTable.sync();
+        await dbHandler.partnerTable.sync();
+        await dbHandler.stockMovementTable.sync();
+        await dbHandler.orderTable.sync();
+        await dbHandler.orderItemTable.sync();
+        await dbHandler.invoiceTable.sync();
+        await dbHandler.logTable.sync();
+        
+        console.log('✅ Táblák szinkronizálva');
+    } catch (error) {
+        console.error('❌ Hiba a táblák szinkronizálásakor:', error);
+    }
+}
+
+syncTables()
 
 const users = require('./users');
 const products = require('./products');

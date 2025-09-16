@@ -107,7 +107,7 @@ router.post('/stockMovements/in', authenticateJWT(), authorizeRole(['admin', 'sa
       isActive: newQuantity > 0
     }, { transaction });
 
-     await logAction({
+      await logAction({
       userId,
       action: 'STOCK_IN',
       targetType: 'StockMovement',
