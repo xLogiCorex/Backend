@@ -1,83 +1,102 @@
-const express = require('express')
-const router = express.Router()
-const dbHandler = require('./dbHandler')
+// products.js
+const express = require("express");
+const router = express.Router();
+const { Op } = require("sequelize");
+const dbHandler = require("./dbHandler");
+const authenticateJWT = require("./authenticateJWT");
+const authorizeRole = require("./authorizeRole");
+const { logAction } = require("./log");
 
-const authenticateJWT = require('./authenticateJWT')
-const authorizeRole = require('./authorizeRole')
+// Termékek keresése / listázása
+router.get("/products", authenticateJWT(), authorizeRole(["admin", "sales"]), async (req, res) => {
+    try {
+        const { q } = req.query;
+        let where = {};
 
-const { logAction } = require('./log');
+        if (q && q.trim() !== "") {
+        where = {
+            [Op.or]: [
+            { sku: { [Op.like]: `%${q}%` } },
+            { name: { [Op.like]: `%${q}%` } }
+            ]
+        };
+        }
 
-router.get('/products', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
-    res.status(200).json(await dbHandler.productTable.findAll())
-})
+        const products = await dbHandler.productTable.findAll({
+        where,
+        order: [["name", "ASC"]],
+        limit: 100
+        });
 
-// ----------- Új termék rögzítése --------------
-//
-// Az alábbi tulajdonságokat kérjük csak be: 
-//  newSku, newName, newCategory, newSubCategory, newUnit, newPrice, newMinStockLevel 
-//
-//  Készlet mennyiséget bevételezésnél fogjuk megadni. Az egy másik put lesz.
-// ----------------------------------------------
+        return res.status(200).json(products);
+    } catch (error) {
+        console.error("Hiba a termékek lekérésekor:", error);
+        return res.status(500).json({ message: "Nem sikerült lekérni a termékeket." });
+    }
+});
 
-router.post('/products', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
-    let { newSku, newName, newCategoryId, newSubcategoryId, newUnit, newPrice, newStockQuantity, newMinStockLevel, newIsActive } = req.body;
+// Új termék létrehozása
+router.post("/products", authenticateJWT(), authorizeRole(["admin"]), async (req, res) => {
+    let { newSku, newName, newCategoryId, newSubcategoryId, newUnit, newPrice, newMinStockLevel, newIsActive } = req.body;
 
-    if (!newSku || !newName || !newCategoryId || !newUnit || !newPrice)
-        return res.status(400).json({ message: 'Kötelező mező kitöltése szükséges!' });     // jelölni kell frontenden a kötelző mezőket pl. *-gal
+    if (!newSku || !newName || !newCategoryId || !newUnit || !newPrice) {
+        return res.status(400).json({ message: "Kötelező mező kitöltése szükséges!" });
+    }
 
-    if (newSku.length <= 3)
-        return res.status(400).json({ message: 'A termék SKU-nak legalább 4 karakter hosszúnak kell lennie!' })
+    if (newSku.length <= 3) {
+        return res.status(400).json({ message: "A termék SKU-nak legalább 4 karakter hosszúnak kell lennie!" });
+    }
 
-    if (newName.length <= 3)
-        return res.status(400).json({ message: 'A termék nevének minimum 4 karakter hosszúnak kell lennie!' })
-
-    const productSkuCheck = await dbHandler.productTable.findOne({
-        where: { sku: newSku }
-    })
-    if (productSkuCheck)
-        return res.status(409).json({ message: 'Ez a termék SKU már létezik!' })
-
-    const productNameCheck = await dbHandler.productTable.findOne({
-        where: { name: newName }
-    })
-    if (productNameCheck)
-        return res.status(409).json({ message: 'Ez a termék név már létezik!' })
+    if (newName.length <= 3) {
+        return res.status(400).json({ message: "A termék nevének minimum 4 karakter hosszúnak kell lennie!" });
+    }
 
     try {
+        const [skuExists, nameExists] = await Promise.all([
+        dbHandler.productTable.findOne({ where: { sku: newSku } }),
+        dbHandler.productTable.findOne({ where: { name: newName } })
+        ]);
+
+        if (skuExists) {
+        return res.status(409).json({ message: "Ez a termék SKU már létezik!" });
+        }
+        if (nameExists) {
+        return res.status(409).json({ message: "Ez a termék név már létezik!" });
+        }
+
         const newProduct = await dbHandler.productTable.create({
+        sku: newSku,
+        name: newName,
+        categoryId: newCategoryId,
+        subcategoryId: newSubcategoryId || null,
+        unit: newUnit,
+        price: newPrice,
+        stockQuantity: 0,
+        minStockLevel: newMinStockLevel || 0,
+        isActive: newIsActive !== undefined ? newIsActive : true
+        });
+
+        await logAction({
+        userId: req.user.id,
+        action: "PRODUCT_CREATE",
+        targetType: "Product",
+        targetId: newProduct.id,
+        payload: {
             sku: newSku,
             name: newName,
             categoryId: newCategoryId,
             subcategoryId: newSubcategoryId || null,
             unit: newUnit,
-            price: newPrice,
-            stockQuantity: newStockQuantity || 0,
-            minStockLevel: newMinStockLevel || 0,
-            isActive: newIsActive
-        })
-
-        await logAction({
-            userId: req.user.id,
-            action: 'PRODUCT_CREATE',
-            targetType: 'Product',
-            targetId: newProduct.id,
-            payload: {
-                sku: newSku,
-                name: newName,
-                categoryId: newCategoryId,
-                subcategoryId: newSubcategoryId || null,
-                unit: newUnit,
-                price: newPrice
-            },
-            req
+            price: newPrice
+        },
+        req
         });
 
-        return res.status(201).json({ message: 'Termék sikeresen rögzítve!' })
+        return res.status(201).json({ message: "Termék sikeresen rögzítve!", product: newProduct });
+    } catch (error) {
+        console.error("Termék mentési hiba:", error);
+        return res.status(500).json({ message: "A termék mentése sikertelen volt. Kérjük, próbáld újra!" });
     }
-    catch (error) {
-        return res.status(500).json({ message: 'A termék mentése sikertelen volt. Kérjük, próbáld újra!', error: error.message })
-    }
+});
 
-})
-
-module.exports = router
+module.exports = router;
