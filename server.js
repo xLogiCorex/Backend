@@ -29,7 +29,7 @@ async function syncTables() {
     }
 }
 
-syncTables()
+//syncTables()
 
 const users = require('./users');
 const products = require('./products');

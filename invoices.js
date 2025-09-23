@@ -73,7 +73,7 @@ router.get('/invoices/:id', authenticateJWT(), authorizeRole(['admin', 'sales'])
 });
 
 // GET /invoices/:id/pdf – PDF számla generálás és letöltés
-router.get('/invoices/:id/pdf', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
+router.get('/invoices/:id/pdf', /*authenticateJWT(), authorizeRole(['admin', 'sales']),*/ async (req, res) => {
   console.log("📄 PDF endpoint elindult, ID:", req.params.id);
   try {
     console.log("PDF lekérés ID:", req.params.id);
@@ -88,9 +88,9 @@ router.get('/invoices/:id/pdf', authenticateJWT(), authorizeRole(['admin', 'sale
     }
 
     // Jogosultság ellenőrzés
-    if (req.user.role === 'sales' && invoice.userId !== req.user.id) {
+    /*if (req.user.role === 'sales' && invoice.userId !== req.user.id) {
       return res.status(403).json({ message: 'Nincs jogosultságod ehhez a számlához.' });
-    }
+    }*/
 
     // Partner adatok lekérése
     const partner = await dbHandler.partnerTable.findByPk(invoice.partnerId);
@@ -166,7 +166,7 @@ router.get('/invoices/:id/pdf', authenticateJWT(), authorizeRole(['admin', 'sale
     }
 
     doc.end();
-
+    res.status(200).send(doc).end()
   } catch (error) {
     console.error('PDF generálás hiba:', error);
     res.status(500).json({ message: 'Hiba történt a PDF generálás során.', error: error.message });
