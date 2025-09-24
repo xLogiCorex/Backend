@@ -4,6 +4,8 @@ const dbHandler = require('./dbHandler');
 const authenticateJWT = require('./authenticateJWT');
 const authorizeRole = require('./authorizeRole');
 
+
+// Tevékenységek naplózása. Biztosítja a teljes nyomon követhetőséget a rendszerben.
 async function logAction({ userId, action, targetType, targetId, payload, req }) {
   await dbHandler.logTable.create({
     userId,
@@ -19,6 +21,7 @@ async function logAction({ userId, action, targetType, targetId, payload, req })
   });
 }
 
+// Naplók lekérése
 router.get('/logs', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
   try {
     const logs = await dbHandler.logTable.findAll({

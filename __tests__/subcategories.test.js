@@ -1,5 +1,3 @@
-// subcategories.test.js
-
 const supertest = require('supertest')
 const express = require('express')
 const dbHandler = require('../dbHandler')
@@ -7,8 +5,8 @@ const subcategoriesRoute = require('../subcategories')
 
 // Middleware-ek mockolása
 jest.mock('../authenticateJWT', () => () => (req, res, next) => {
-  req.user = { id: 1 }; // Feltételezett belépett felhasználó id-je
-  next();
+    req.user = { id: 1 }; 
+    next();
 });
 jest.mock('../authorizeRole', () => () => (req, res, next) => next())
 
@@ -41,13 +39,14 @@ describe('/subcategories végpont tesztelése', () => {
         expect(res.body).toEqual([{ name: 'Alkategória 1' }])
     })
 
-    // POST /subcategories
+    // POST /subcategories hiányzó mező
     test('POST /subcategories – hiányzó mezők -> 400', async () => {
         const res = await supertest(app).post('/subcategories').send({})
         expect(res.statusCode).toBe(400)
         expect(res.body.message).toMatch(/kitöltése kötelező/i)
     })
 
+    // POST /subcategories már létező
     test('POST /subcategories – már létező -> 409', async () => {
         dbHandler.subcategoryTable.findOne.mockResolvedValue({ id: 1 })
         const res = await supertest(app).post('/subcategories').send({
@@ -58,6 +57,7 @@ describe('/subcategories végpont tesztelése', () => {
         expect(res.body.message).toMatch(/már létezik/i)
     })
 
+    // POST /subcategories sikeres létrehozás
     test('POST /subcategories – sikeres létrehozás -> 201', async () => {
         dbHandler.subcategoryTable.findOne.mockResolvedValue(null)
         dbHandler.subcategoryTable.create.mockResolvedValue({ id: 1 }) 
@@ -69,6 +69,7 @@ describe('/subcategories végpont tesztelése', () => {
         expect(res.body.message).toMatch(/sikeresen rögzítve/i)
     })
 
+    // POST /subcategories DB hiba
     test('POST /subcategories – DB-hiba -> 500', async () => {
         dbHandler.subcategoryTable.findOne.mockResolvedValue(null)
         dbHandler.subcategoryTable.create.mockRejectedValue(new Error('DB error'))

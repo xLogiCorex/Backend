@@ -1,5 +1,7 @@
 const { Sequelize, DataTypes } = require("sequelize");
 const dbHandler = new Sequelize('project', 'root', '', { host: '127.1.1.1', dialect: 'mysql' })
+
+// Felhasználó tábla
 exports.userTable = dbHandler.define('user', {
   id: {
     type: DataTypes.UUID,
@@ -35,6 +37,7 @@ exports.userTable = dbHandler.define('user', {
   }
 })
 
+// Termék tábla
 exports.productTable = dbHandler.define('product', {
   id: {
     type: DataTypes.INTEGER,
@@ -90,6 +93,7 @@ exports.productTable = dbHandler.define('product', {
   }
 })
 
+// Kategória tábla
 exports.categoryTable = dbHandler.define('category', {
   id: {
     type: DataTypes.INTEGER,
@@ -104,6 +108,7 @@ exports.categoryTable = dbHandler.define('category', {
   }
 })
 
+// Alkategória tábla
 exports.subcategoryTable = dbHandler.define('subcategory', {
   id: {
     type: DataTypes.INTEGER,
@@ -121,6 +126,7 @@ exports.subcategoryTable = dbHandler.define('subcategory', {
   }
 })
 
+// Partner tábla
 exports.partnerTable = dbHandler.define('partner', {
   id: {
     type: DataTypes.INTEGER,
@@ -160,6 +166,7 @@ exports.partnerTable = dbHandler.define('partner', {
   }
 })
 
+// Készletmozgás tábla
 exports.stockMovementTable = dbHandler.define('stockmovement', {
   id: {
     type: DataTypes.INTEGER,
@@ -202,6 +209,7 @@ exports.stockMovementTable = dbHandler.define('stockmovement', {
   }
 })
 
+// Megrendelés Tábla
 exports.orderTable = dbHandler.define('order', {
   id: {
     type: DataTypes.INTEGER,
@@ -241,6 +249,7 @@ exports.orderTable = dbHandler.define('order', {
   }
 });
 
+// Megrendelés tétel Tábla
 exports.orderItemTable = dbHandler.define('orderitem', {
   id: {
     type: DataTypes.INTEGER,
@@ -270,6 +279,7 @@ exports.orderItemTable = dbHandler.define('orderitem', {
   }
 })
 
+// Számla tábla
 exports.invoiceTable = dbHandler.define('invoice', {
   id: {
     type: DataTypes.INTEGER,
@@ -321,6 +331,7 @@ exports.invoiceTable = dbHandler.define('invoice', {
   }
 });
 
+// Napló tábla
 exports.logTable = dbHandler.define('log', {
   id: {
     type: DataTypes.INTEGER,

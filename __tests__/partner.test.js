@@ -1,5 +1,3 @@
-// partner.test.js
-
 const supertest = require('supertest')
 const express = require('express')
 const dbHandler = require('../dbHandler')
@@ -24,6 +22,7 @@ jest.mock('../dbHandler', () => ({
     }
 }))
 
+// /partners végpont tesztelése
 describe('/partners végpont tesztelése', () => {
     const app = express()
     app.use(express.json(), partnersRoute)
@@ -40,13 +39,14 @@ describe('/partners végpont tesztelése', () => {
         expect(res.body).toEqual([{ name: 'Partner Kft.' }])
     })
 
-    // POST /partners – Hibakezelés
+    // POST /partners hiányzó mező
     test('POST /partners – hiányzó mezők -> 400', async () => {
         const res = await supertest(app).post('/partners').send({})
         expect(res.statusCode).toBe(400)
         expect(res.body.message).toMatch(/kitöltése kötelező/i)
     })
 
+    // POST /partners rövid név
     test('POST /partners – túl rövid név -> 401', async () => {
         const res = await supertest(app).post('/partners').send({
         newName: 'Abc',
@@ -60,6 +60,7 @@ describe('/partners végpont tesztelése', () => {
         expect(res.body.message).toMatch(/legalább 4 karakter/i)
     })
 
+    // POST /partners hibás adószám
     test('POST /partners – hibás adószám -> 400', async () => {
         const res = await supertest(app).post('/partners').send({
         newName: 'Partner Kft',
@@ -73,6 +74,7 @@ describe('/partners végpont tesztelése', () => {
         expect(res.body.message).toMatch(/Hibás adószám/i)
     })
 
+    // POST /partners hibás email
     test('POST /partners – hibás email -> 400', async () => {
         const res = await supertest(app).post('/partners').send({
         newName: 'Partner Kft',
@@ -86,6 +88,7 @@ describe('/partners végpont tesztelése', () => {
         expect(res.body.message).toMatch(/Hibás email/i)
     })
 
+    // POST /partners létező adat
     test('POST /partners – már létezik -> 409', async () => {
         dbHandler.partnerTable.findOne.mockResolvedValue({ id: 1 })
         const res = await supertest(app).post('/partners').send({
@@ -100,6 +103,7 @@ describe('/partners végpont tesztelése', () => {
         expect(res.body.message).toMatch(/már létezik/i)
     })
 
+    // POST /partners sikeres létrehozás
     test('POST /partners – sikeres létrehozás -> 201', async () => {
         dbHandler.partnerTable.findOne.mockResolvedValue(null)
         dbHandler.partnerTable.create.mockResolvedValue({id:111})
@@ -116,6 +120,7 @@ describe('/partners végpont tesztelése', () => {
         expect(res.body.message).toMatch(/sikeresen rögzítve/i)
     })
 
+    // POST /partners adatbázis hiba
     test('POST /partners – DB-hiba -> 500', async () => {
         dbHandler.partnerTable.findOne.mockResolvedValue(null)
         dbHandler.partnerTable.create.mockRejectedValue(new Error('DB error'))

@@ -5,7 +5,7 @@ const categoriesRoute = require('../categories')
 
 // Middleware-ek mockolása
 jest.mock('../authenticateJWT', () => () => (req, res, next) => {
-  req.user = { id: 1 }; // Feltételezett bejelentkezett user id-je
+  req.user = { id: 1 }; 
   next();
 });
 jest.mock('../authorizeRole', () => () => (req, res, next) => next())
@@ -22,6 +22,7 @@ jest.mock('../dbHandler', () => ({
   }
 }))
 
+// /categories végpont tesztelése
 describe('/categories végpont tesztelése', () => {
   const app = express()
   app.use(express.json(), categoriesRoute)

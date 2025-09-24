@@ -10,6 +10,7 @@ const SECRET = process.env.SECRET
 const authenticateJWT = require('./authenticateJWT')
 const authorizeRole = require('./authorizeRole')
 
+// Felhasználók lekérése
 router.get('/users', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
   try {
     const users = await dbHandler.userTable.findAll({ attributes: ['id', 'name', 'email', 'role', 'isActive'] });
@@ -19,11 +20,11 @@ router.get('/users', authenticateJWT(), authorizeRole(['admin']), async (req, re
   }
 });
 
+// Regisztráció
 router.post('/register', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
   let { newName, newEmail, newPassword, newRole, newIsActive } = req.body;
 
 
-  // input hibákat átrtam 401ről 400ra.
   if (!newName || !newPassword || !newEmail)
     return res.status(400).json({ message: 'Minden mező kitöltése kötelező!' })
 
@@ -102,7 +103,7 @@ router.post('/register', authenticateJWT(), authorizeRole(['admin']), async (req
   }
 })
 
-
+// Bejelentkezés
 router.post('/login', async (req, res) => {
   let { newEmail, newPassword } = req.body;
 
@@ -112,7 +113,6 @@ router.post('/login', async (req, res) => {
     });
 
     if (!userLogin) {
-      // Hibás email, logoljuk
       await dbHandler.logTable.create({
         userId: null,
         action: 'LOGIN_FAIL',
@@ -131,7 +131,6 @@ router.post('/login', async (req, res) => {
     const passwordMatch = await bcrypt.compare(newPassword, userLogin.password);
 
     if (!passwordMatch) {
-      // Hibás jelszó, logoljuk
       await dbHandler.logTable.create({
         userId: userLogin.id,
         action: 'LOGIN_FAIL',
@@ -147,30 +146,26 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'A megadott jelszó helytelen.' });
     }
 
-    
-
     const token = JWT.sign(
       { id: userLogin.id, email: userLogin.email, role: userLogin.role },
       SECRET,
       { expiresIn: '1h' }
     );
- // Sikeres bejelentkezés logolása
     await logAction({
       userId: userLogin.id,
       action: 'LOGIN_SUCCESS',
       targetType: 'User',
       targetId: userLogin.id,
-      payload: { email: newEmail, ip: req.ip,
-          userAgent: req.headers['user-agent'] },
+      payload: {
+        email: newEmail, ip: req.ip,
+        userAgent: req.headers['user-agent']
+      },
       req
     });
 
-     
-
     return res.status(200).json({ token, role: userLogin.role, message: 'Sikeres bejelentkezés!' });
-    
+
   } catch (error) {
-    // Váratlan hiba esetén logolhatod, vagy csak visszaadsz hibát
     console.error("Login hiba:", error);
     return res.status(500).json({ message: 'Váratlan hiba történt a bejelentkezés során. Kérjük, próbáld meg később újra!', error: error.message });
   }

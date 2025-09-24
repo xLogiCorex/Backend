@@ -6,10 +6,12 @@ const { logAction } = require('./log');
 const authenticateJWT = require('./authenticateJWT')
 const authorizeRole = require('./authorizeRole')
 
+// Kategóriák lekérése
 router.get('/categories', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
     res.status(200).json(await dbHandler.categoryTable.findAll())
 })
 
+// Kategória létrehozása
 router.post('/categories', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
     let { newName } = req.body;
 

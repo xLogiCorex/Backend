@@ -5,12 +5,12 @@ const supertest = require('supertest');
 const jwt = require('jsonwebtoken');
 jest.mock('../dbHandler');
 const dbHandler = require('../dbHandler');
-const ordersRouter = require('../orders'); // a te routered neve lehet más, írd be helyesen!
+const ordersRoute = require('../orders');
 
 describe('/orders endpoint tesztek', () => {
     const app = express();
     app.use(express.json());
-    app.use(ordersRouter);
+    app.use(ordersRoute);
 
     // Test tokenek
     const adminToken = jwt.sign({ id: 1, email: "admin@api.hu", role: "admin" }, process.env.SECRET, { expiresIn: '1h' });
@@ -21,15 +21,13 @@ describe('/orders endpoint tesztek', () => {
         jest.clearAllMocks();
     });
 
-    // GET
-
+    // GET /orders nincs token
     test('GET /orders – nincs token → 401/403', async () => {
         const res = await supertest(app).get('/orders');
         expect([401, 403]).toContain(res.statusCode);
     });
 
-
-
+    // GET /orders sales token
     test('GET /orders – sales token → 200 és tömb', async () => {
         dbHandler.partnerTable.findAll.mockResolvedValue([{ id: 1, company: "Cég", orderNumber: "A123" }]);
         const res = await supertest(app).get('/orders').set('Authorization', `Bearer ${salesToken}`);
@@ -37,6 +35,7 @@ describe('/orders endpoint tesztek', () => {
         expect(Array.isArray(res.body)).toBe(true);
     });
 
+    // GET /orders admin token
     test('GET /orders – admin token → 200 és tömb', async () => {
         dbHandler.partnerTable.findAll.mockResolvedValue([{ id: 1, company: "Cég2", orderNumber: "B456" }]);
         const res = await supertest(app).get('/orders').set('Authorization', `Bearer ${adminToken}`);
@@ -44,13 +43,14 @@ describe('/orders endpoint tesztek', () => {
         expect(Array.isArray(res.body)).toBe(true);
     });
 
-
+    // GET /orders hiányzó Authorization header
     test('GET /orders – hiányzó Authorization header → 401', async () => {
         const res = await supertest(app).get('/orders');
         expect(res.statusCode).toBe(401);
         expect(res.body.message).toMatch(/token/i);
     });
 
+    // GET /orders rossz formátumú Authorization header (nem Bearer)
     test('GET /orders – rossz formátumú Authorization header (nem Bearer) → 401', async () => {
         const res = await supertest(app)
             .get('/orders')
@@ -59,6 +59,7 @@ describe('/orders endpoint tesztek', () => {
         expect(res.body.message).toMatch(/token/i);
     });
 
+    // GET /orders hibás Bearer token (nem JWT)
     test('GET /orders – hibás Bearer token (nem JWT) → 401', async () => {
         const res = await supertest(app)
             .get('/orders')
@@ -67,6 +68,7 @@ describe('/orders endpoint tesztek', () => {
         expect(res.body.message).toMatch(/érvénytelen|hibás|token/i);
     });
 
+    // GET /orders érvénytelen JTW token
     test('GET /orders – manipulált vagy érvénytelen JWT token → 401', async () => {
         const fakeToken = jwt.sign({ id: 1, email: "admin@api.hu", role: "admin" }, 'rosszsecret', { expiresIn: '1h' });
         const res = await supertest(app)
@@ -76,10 +78,9 @@ describe('/orders endpoint tesztek', () => {
         expect(res.body.message).toMatch(/érvénytelen|hibás|token/i);
     });
 
+    // GET /orders lejárt JTW token
     test('GET /orders – lejárt JWT token → 401', async () => {
-        // létrehozol egy rövid életű (pl 1ms) token, vagy kézzel lejárt token
         const expiredToken = jwt.sign({ id: 1, email: "admin@api.hu", role: "admin" }, process.env.SECRET, { expiresIn: '1ms' });
-        // várj egy kis időt, hogy lejárjon (pl. 10ms)
         await new Promise(r => setTimeout(r, 10));
         const res = await supertest(app)
             .get('/orders')
@@ -88,14 +89,13 @@ describe('/orders endpoint tesztek', () => {
         expect(res.body.message).toMatch(/lejárt|expire|token/i);
     });
 
-
-    // POST
-
+    // POST /orders nincs token
     test('POST /orders – nincs token → 401/403', async () => {
         const res = await supertest(app).post('/orders').send({});
         expect([401, 403]).toContain(res.statusCode);
     });
 
+    // POST /orders hiányzó mezők
     test('POST /orders – hiányzik a kötelező mező → 400', async () => {
         const res = await supertest(app)
             .post('/orders')
@@ -105,6 +105,7 @@ describe('/orders endpoint tesztek', () => {
         expect(res.body.message).toMatch(/mező/);
     });
 
+    // POST /orders duplikált orderszám
     test('POST /orders – duplikált orderszám → 409', async () => {
         dbHandler.orderTable.findOne.mockResolvedValue({ id: 888, orderNumber: 'ORD-42' });
         const res = await supertest(app)
@@ -121,6 +122,7 @@ describe('/orders endpoint tesztek', () => {
         expect(res.body.message).toMatch(/rendelés.*létezik/i);
     });
 
+    // POST /orders sales token
     test('POST /orders – sales token, sikeres → 201', async () => {
         dbHandler.orderTable.findOne.mockResolvedValue(null);
         dbHandler.orderTable.create.mockResolvedValue({
@@ -144,7 +146,7 @@ describe('/orders endpoint tesztek', () => {
         expect(res.body.message).toMatch(/sikeresen/i);
     });
 
-
+    // POST /orders admin token
     test('POST /orders – admin token, adatbázishiba → 500', async () => {
         dbHandler.orderTable.findOne.mockResolvedValue(null);
         dbHandler.orderTable.create.mockRejectedValue(new Error("DB lehalt"));
@@ -162,11 +164,11 @@ describe('/orders endpoint tesztek', () => {
         expect(res.body.message).toMatch(/sikertelen|hiba/i);
     });
 
-    //PUT tesztek
     beforeEach(() => {
         jest.clearAllMocks();
     });
 
+    // PUT /orders/:id/status nincs token
     test('PUT /orders/:id/status – nincs token → 401/403', async () => {
         const res = await supertest(app)
             .put('/orders/1/status')
@@ -174,15 +176,17 @@ describe('/orders endpoint tesztek', () => {
         expect([401, 403]).toContain(res.statusCode);
     });
 
+    // PUT /orders/:id/status érvénytelen státusz
     test('PUT /orders/:id/status – érvénytelen státusz megadása → 400', async () => {
         const res = await supertest(app)
             .put('/orders/1/status')
             .set('Authorization', `Bearer ${adminToken}`)
-            .send({ newStatus: 'invalid' }); // csak completed vagy cancelled lehet
+            .send({ newStatus: 'invalid' });
         expect(res.statusCode).toBe(400);
         expect(res.body.message).toMatch(/completed|cancelled|csak/i);
     });
 
+    // PUT /orders/:id/status nem létező rendelés
     test('PUT /orders/:id/status – nem létező rendelés → 404', async () => {
         dbHandler.orderTable.findByPk.mockResolvedValue(null);
         const res = await supertest(app)
@@ -193,6 +197,7 @@ describe('/orders endpoint tesztek', () => {
         expect(res.body.message).toMatch(/nem található/i);
     });
 
+    // PUT /orders/:id/status sikeres frissítés
     test('PUT /orders/:id/status – sikeres frissítés completed státusszal → 200', async () => {
         const orderMock = {
             id: 1,
@@ -230,7 +235,7 @@ describe('/orders endpoint tesztek', () => {
         expect(res.body.message).toMatch(/sikeresen|módosítva/i);
     });
 
-
+    // PUT /orders/:id/status adatbázishiba save közben
     test('PUT /orders/:id/status – adatbázishiba save közben → 500', async () => {
         const orderMock = {
             id: 1,
@@ -249,6 +254,7 @@ describe('/orders endpoint tesztek', () => {
         expect(res.body.message).toMatch(/hiba/i);
     });
 
+    // PUT /orders/:id/status nem new státuszú rendelés frissítése
     test('PUT /orders/:id/status – nem new státuszú rendelés frissítése → 400', async () => {
         const orderMock = {
             id: 1,
@@ -268,6 +274,7 @@ describe('/orders endpoint tesztek', () => {
         expect(orderMock.save).not.toHaveBeenCalled();
     });
 
+    // PUT /orders/:id/status rendeléshez már készült számla
     test('PUT /orders/:id/status – rendeléshez már készült számla → 400', async () => {
         const orderMock = {
             id: 1,

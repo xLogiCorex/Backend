@@ -22,11 +22,7 @@ router.get("/products", authenticateJWT(), authorizeRole(["admin", "sales"]), as
         };
         }
 
-        const products = await dbHandler.productTable.findAll({
-        where,
-        order: [["name", "ASC"]],
-        limit: 100
-        });
+        const products = await dbHandler.productTable.findAll({ where, order: [["name", "ASC"]], limit: 100 });
 
         return res.status(200).json(products);
     } catch (error) {
@@ -96,6 +92,55 @@ router.post("/products", authenticateJWT(), authorizeRole(["admin"]), async (req
     } catch (error) {
         console.error("Termék mentési hiba:", error);
         return res.status(500).json({ message: "A termék mentése sikertelen volt. Kérjük, próbáld újra!" });
+    }
+});
+
+// Termék módosítása
+router.put('/products/:id', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
+    const productId = req.params.id;
+    const productMod = req.body; // Tetszőleges mezők: newSku, newName, stb.
+
+    try {
+    const product = await dbHandler.productTable.findByPk(productId);
+    if (!product) {
+        return res.status(404).json({ message: 'Nem található a termék.' });
+    }
+
+    // SKU vagy név ellenőrzése, ha ezek változnak
+    if (productMod.newSku && productMod.newSku !== product.sku) {
+        const skuExists = await dbHandler.productTable.findOne({ where: { sku: productMod.newSku } });
+        if (skuExists) return res.status(409).json({ message: 'Ez a termék SKU már létezik!' });
+    }
+    if (productMod.newName && productMod.newName !== product.name) {
+        const nameExists = await dbHandler.productTable.findOne({ where: { name: productMod.newName } });
+        if (nameExists) return res.status(409).json({ message: 'Ez a termék név már létezik!' });
+    }
+
+    // Csak a megadott mezőket frissítjük
+    if (productMod.newSku !== undefined) product.sku = productMod.newSku;
+    if (productMod.newName !== undefined) product.name = productMod.newName;
+    if (productMod.newCategoryId !== undefined) product.categoryId = productMod.newCategoryId;
+    if (productMod.newSubcategoryId !== undefined) product.subcategoryId = productMod.newSubcategoryId;
+    if (productMod.newUnit !== undefined) product.unit = productMod.newUnit;
+    if (productMod.newPrice !== undefined) product.price = productMod.newPrice;
+    if (productMod.newMinStockLevel !== undefined) product.minStockLevel = productMod.newMinStockLevel;
+    if (productMod.newIsActive !== undefined) product.isActive = productMod.newIsActive;
+
+    await product.save();
+
+    await logAction({
+        userId: req.user.id,
+        action: 'PRODUCT_UPDATE',
+        targetType: 'Product',
+        targetId: product.id,
+        payload: productMod,
+        req
+    });
+
+    return res.status(200).json({ message: 'Termék sikeresen frissítve.', product });
+    } catch (error) {
+    console.error('Termék frissítési hiba:', error);
+    return res.status(500).json({ message: 'A termék frissítése sikertelen volt. Kérjük, próbáld újra!' });
     }
 });
 

@@ -1,13 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { stockMovementTable, productTable, userTable, logTable, sequelize } = require('./dbHandler');
-const { logAction } = require('./log');  
+const { logAction } = require('./log');
 const authenticateJWT = require('./authenticateJWT');
 const authorizeRole = require('./authorizeRole');
 
-
-// Segédfüggvények
-
+// Készletmozgási azonosító (pl. KT-2025-00001) generálása
 async function generateMovementNumber(transaction) {
   const year = new Date().getFullYear();
   const lastStockMovement = await stockMovementTable.findOne({
@@ -17,6 +15,7 @@ async function generateMovementNumber(transaction) {
   return `KT-${year}-${String((lastStockMovement ? lastStockMovement.id : 0) + 1).padStart(5, '0')}`;
 }
 
+// Bemeneti adatok validálása
 function validateStockFields(body) {
   const { productId, quantity } = body;
   if (!productId || quantity === undefined) {
@@ -28,20 +27,20 @@ function validateStockFields(body) {
   return { valid: true };
 }
 
+// Segédfüggvény az adatbázis tranzakciók kezelésére
 async function withTransaction(req, res, action) {
-  const transaction = await sequelize.transaction(); // Tranzakció létrehozása
+  const transaction = await sequelize.transaction(); 
   try {
-    await action(transaction); // A tranzakciós művelet végrehajtása
-    await transaction.commit(); // Tranzakció elkötelezése, tehát minden sikeres volt
+    await action(transaction); 
+    await transaction.commit(); 
   } catch (error) {
-    await transaction.rollback(); // Tranzakció visszagörgetése hiba esetén
+    await transaction.rollback(); 
     return res.status(500).json({ message: "Művelet sikertelen.", error: error.message });
   }
 }
 
-// Routes
 
-// Terméklista lekérése (admin és sales jogosultsággal)
+// Terméklista lekérése
 router.get('/products', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
   try {
     const products = await productTable.findAll();
@@ -51,18 +50,18 @@ router.get('/products', authenticateJWT(), authorizeRole(['admin', 'sales']), as
   }
 });
 
-// Készletmozgások listázása (csak adminnak, sales csak saját mozgásait láthatja)
+// Készletmozgások listázása
 router.get('/stockMovements', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
   try {
-    const { type, from, to, productId } = req.query; // Kivesszük az URL-ből érkező query paramétereket: type, from, to, productId
-    const where = {};   // Létrehozunk egy üres objektumot, amibe később feltételeket teszünk
-    if (type) where.type = type; // Ha a type query paraméter meg van adva (pl. "in", "out", "transfer"), akkor a where objektumba betesszük: where.type = "in" például.
-    if (productId) where.productId = productId; // Ha van productId a query-ben, akkor ezt is hozzáadjuk szűrési feltételként (pl. where.productId = 5).
-    if (from || to) { // Ha van from vagy to dátum a query-ben, akkor a where.date objektumba betesszük a megfelelő feltételeket
-      where.date = {}; // Létrehozunk egy üres objektumot a dátumoknak
-      if (from) where.date['$gte'] = new Date(from); // $gte = Greater Than or Equal (nagyobb vagy egyenlő mint), 
-      if (to) where.date['$lte'] = new Date(to);    // $lte = Less Than or Equal (kisebb vagy egyenlő mint)
-      // Így például ha from = "2023-01-01" és to = "2023-12-31", akkor a where.date objektum így néz ki: { $gte: new Date("2023-01-01"), $lte: new Date("2023-12-31") }
+    const { type, from, to, productId } = req.query; 
+    const where = {};  
+    if (type) where.type = type; 
+    if (productId) where.productId = productId; 
+    if (from || to) { 
+      where.date = {}; 
+      if (from) where.date['$gte'] = new Date(from); 
+      if (to) where.date['$lte'] = new Date(to);    
+      
     }
 
 
@@ -76,7 +75,7 @@ router.get('/stockMovements', authenticateJWT(), authorizeRole(['admin', 'sales'
   }
 });
 
-// Bevételezés létrehozása (admin, sales)
+// Bevételezés
 router.post('/stockMovements/in', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
   const validation = validateStockFields(req.body);
   if (!validation.valid) return res.status(400).json({ message: validation.message });
@@ -107,7 +106,7 @@ router.post('/stockMovements/in', authenticateJWT(), authorizeRole(['admin', 'sa
       isActive: newQuantity > 0
     }, { transaction });
 
-      await logAction({
+    await logAction({
       userId,
       action: 'STOCK_IN',
       targetType: 'StockMovement',
@@ -126,7 +125,7 @@ router.post('/stockMovements/in', authenticateJWT(), authorizeRole(['admin', 'sa
   });
 });
 
-// Készlet kivezetése (OUT) - admin és sales jogosultsággal
+// Készlet kivezetése
 router.post('/stockMovements/out', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
   const validation = validateStockFields(req.body);
   if (!validation.valid) return res.status(400).json({ message: validation.message });
@@ -180,7 +179,7 @@ router.post('/stockMovements/out', authenticateJWT(), authorizeRole(['admin', 's
   });
 });
 
-// Áthelyezés (TRANSFER) - admin és sales jogosultsággal
+// Áthelyezés 
 router.post('/stockMovements/transfer', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
   const validation = validateStockFields(req.body);
   if (!validation.valid) return res.status(400).json({ message: validation.message });
@@ -208,7 +207,6 @@ router.post('/stockMovements/transfer', authenticateJWT(), authorizeRole(['admin
     }, { transaction });
 
     // Áthelyezésnél a teljes készlet nem változik, ezért product frissítés nincs
-
     await logAction({
       userId,
       action: 'STOCK_TRANSFER',

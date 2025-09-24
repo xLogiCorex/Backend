@@ -7,21 +7,12 @@ const authorizeRole = require('./authorizeRole')
 
 const { logAction } = require('./log');
 
+// Partnerek lekérése
 router.get('/partners', authenticateJWT(), authorizeRole(['sales', 'admin']), async (req, res) => {
     res.status(200).json(await dbHandler.partnerTable.findAll())
 })
 
-// ----------- Új partner rögzítése --------------
-//
-// Az alábbi tulajdonságokat kérjük csak be: 
-//  newName, newTaxNumber, newAddress, newContactPerson, newEmail, newPhone
-//
-//  Ez mind kötelező adat.
-//
-//  Tettem bele e-mail és adószám ellenőrzést. Majd teszteljük!
-//
-// ----------------------------------------------
-
+// Partner létrehozása
 router.post('/partners', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
     let { newName, newTaxNumber, newAddress, newContactPerson, newEmail, newPhone, newIsActive } = req.body;
 
@@ -31,13 +22,13 @@ router.post('/partners', authenticateJWT(), authorizeRole(['admin']), async (req
     if (newName.length <= 3)
         return res.status(401).json({ message: 'A cég nevének legalább 4 karakter hosszúnak kell lennie!' })
 
-    // adószám validálása - forrás ChatGPT
+    // adószám validálás
     const adoRegex = new RegExp('^\\d{8}-\\d{1}-\\d{2}$')
 
     if (!adoRegex.test(newTaxNumber))
         return res.status(400).json({ message: 'Hibás adószám formátum! (pl.: 12345678-1-12)' })
 
-    // email validálása - forrás ChatGPT
+    // email validálás
     const emailRegex = new RegExp('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$')
     if (!emailRegex.test(newEmail))
         return res.status(400).json({ message: 'Hibás email formátum!' })

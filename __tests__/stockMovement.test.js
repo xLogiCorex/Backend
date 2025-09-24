@@ -1,11 +1,11 @@
 const supertest = require('supertest');
 const express = require('express');
 const dbHandler = require('../dbHandler');
-const stockMovementsRouter = require('../stockMovements'); // Az általad megadott router fájl neve
+const stockMovementsRouter = require('../stockMovements'); 
 
-// Middleware mockolás (auth, jogosultság)
+// Middleware mockolás
 jest.mock('../authenticateJWT', () => () => (req, res, next) => {
-    req.user = { id: 1, role: 'admin' }; // Ez a minimum, ami minden logoláshoz szükséges
+    req.user = { id: 1, role: 'admin' }; 
     next();
 });
 jest.mock('../authorizeRole', () => () => (req, res, next) => next());
@@ -15,11 +15,11 @@ jest.mock('../dbHandler', () => ({
     productTable: {
         findAll: jest.fn(),
         findByPk: jest.fn(),
-        update: jest.fn() // lehet, hogy nem globális, hanem instance metódus, lásd lentebb!
+        update: jest.fn() 
     },
     stockMovementTable: {
         findOne: jest.fn(),
-        findAll: jest.fn(),  // ha listázod a mozgásokat!
+        findAll: jest.fn(),
         create: jest.fn()
     },
     logTable: {
@@ -44,24 +44,28 @@ describe('/stockMovements végpontok tesztelése', () => {
     });
 
     describe('POST /stockMovements/in', () => {
+        // POST /stockMovements/in hiányzó mezők
         test('Hiányzó productId vagy quantity -> 400', async () => {
             const res = await supertest(app).post('/stockMovements/in').send({productId:1});
             expect(res.status).toBe(400);
             expect(res.body.message).toMatch(/hiányzó/i);
         });
 
+        // POST /stockMovements/in pozitív mennyiség kell
         test('Pozitív mennyiség kell -> 400', async () => {
             const res = await supertest(app).post('/stockMovements/in').send({ productId: 1, quantity: -2 });
             expect(res.status).toBe(400);
             expect(res.body.message).toMatch(/pozitív/i);
         });
 
+        // POST /stockMovements/in nem létező termék
         test('Nem létező termék -> 404', async () => {
             dbHandler.productTable.findByPk.mockResolvedValue(null);
             const res = await supertest(app).post('/stockMovements/in').send({ productId: 999, quantity: 10 });
             expect(res.status).toBe(404);
         });
 
+        // POST /stockMovements/in sikeres bevételezés
         test('Sikeres bevételezés -> 201', async () => {
             dbHandler.productTable.findByPk.mockResolvedValue({
                 availableStock: 5,
@@ -81,6 +85,7 @@ describe('/stockMovements végpontok tesztelése', () => {
     });
 
     describe('POST /stockMovements/out', () => {
+        // POST /stockMovements/out nincs elég készlet
         test('Nincs elég készlet -> 400', async () => {
             dbHandler.productTable.findByPk.mockResolvedValue({
                 availableStock: 2,
@@ -91,6 +96,7 @@ describe('/stockMovements végpontok tesztelése', () => {
             expect(res.body.message).toMatch(/nincs elegendő készlet/i);
         });
 
+        // POST /stockMovements/out sikeres készletkivétel
         test('Sikeres készletkivétel -> 201', async () => {
             dbHandler.productTable.findByPk.mockResolvedValue({
                 availableStock: 5,
@@ -109,6 +115,7 @@ describe('/stockMovements végpontok tesztelése', () => {
     });
 
     describe('POST /stockMovements/transfer', () => {
+        // POST /stockMovements/transfer nincs elég készlet
         test('Nincs elég készlet áthelyezéshez -> 400', async () => {
             dbHandler.productTable.findByPk.mockResolvedValue({
                 availableStock: 2,
@@ -119,10 +126,11 @@ describe('/stockMovements végpontok tesztelése', () => {
             expect(res.body.message).toMatch(/nincs elegendő készlet/i);
         });
 
+        // POST /stockMovements/transfer sikeres áthelyezés
         test('Sikeres áthelyezés -> 201', async () => {
             dbHandler.productTable.findByPk.mockResolvedValue({
                 availableStock: 10,
-                update: jest.fn().mockResolvedValue()  // update nem szükséges áthelyezéskor, de mockold, ha a kód hívja
+                update: jest.fn().mockResolvedValue()
             });
             dbHandler.stockMovementTable.findOne.mockResolvedValue({ id: 1 });
             dbHandler.stockMovementTable.create.mockResolvedValue({ id: 2 });

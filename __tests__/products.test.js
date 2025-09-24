@@ -38,14 +38,14 @@ describe('/products végpont tesztelése', () => {
     expect(res.body).toEqual([{ name: 'Termék 1', sku: 'SKU1234' }]);
   });
 
-  // POST /products – hiányzó kötelező mező
+  // POST /products hiányzó kötelező mező
   test('POST /products – hiányzó mező -> 400', async () => {
     const res = await supertest(app).post('/products').send({});
     expect(res.statusCode).toBe(400);
     expect(res.body.message).toMatch(/Kötelező mező/i);
   });
 
-  // POST /products – túl rövid SKU
+  // POST /products túl rövid SKU
   test('POST /products – túl rövid SKU -> 400', async () => {
     const res = await supertest(app).post('/products').send({
       newSku: 'A12',
@@ -58,7 +58,7 @@ describe('/products végpont tesztelése', () => {
     expect(res.body.message).toMatch(/SKU-nak legalább 4 karakter/i);
   });
 
-  // POST /products – túl rövid név
+  // POST /products túl rövid név
   test('POST /products – túl rövid név -> 400', async () => {
     const res = await supertest(app).post('/products').send({
       newSku: 'SKU1234',
@@ -71,9 +71,9 @@ describe('/products végpont tesztelése', () => {
     expect(res.body.message).toMatch(/nevének minimum 4 karakter/i);
   });
 
-  // POST /products – létező SKU -> 409
+  // POST /products létező SKU
   test('POST /products – létező SKU -> 409', async () => {
-    dbHandler.productTable.findOne.mockResolvedValueOnce({ id: 1 }); // SKU létezik
+    dbHandler.productTable.findOne.mockResolvedValueOnce({ id: 1 }); 
     const res = await supertest(app).post('/products').send({
       newSku: 'SKU1234',
       newName: 'TesztTermék',
@@ -85,10 +85,10 @@ describe('/products végpont tesztelése', () => {
     expect(res.body.message).toMatch(/SKU már létezik/i);
   });
 
-  // POST /products – létező név -> 409
+  // POST /products létező név
   test('POST /products – létező név -> 409', async () => {
-    dbHandler.productTable.findOne.mockResolvedValueOnce(null); // SKU nincs
-    dbHandler.productTable.findOne.mockResolvedValueOnce({ id: 1 }); // Név létezik
+    dbHandler.productTable.findOne.mockResolvedValueOnce(null); 
+    dbHandler.productTable.findOne.mockResolvedValueOnce({ id: 1 }); 
     const res = await supertest(app).post('/products').send({
       newSku: 'SKU1234',
       newName: 'TesztTermék',
@@ -100,10 +100,10 @@ describe('/products végpont tesztelése', () => {
     expect(res.body.message).toMatch(/név már létezik/i);
   });
 
-  // POST /products – sikeres létrehozás
+  // POST /products sikeres létrehozás
   test('POST /products – sikeres létrehozás -> 201', async () => {
-    dbHandler.productTable.findOne.mockResolvedValueOnce(null); // SKU nincs
-    dbHandler.productTable.findOne.mockResolvedValueOnce(null); // Név nincs
+    dbHandler.productTable.findOne.mockResolvedValueOnce(null); 
+    dbHandler.productTable.findOne.mockResolvedValueOnce(null); 
     dbHandler.productTable.create.mockResolvedValue({ id: 1 });
     const res = await supertest(app).post('/products').send({
       newSku: 'SKU1234',
@@ -117,10 +117,10 @@ describe('/products végpont tesztelése', () => {
     expect(res.body.message).toMatch(/sikeresen rögzítve/i);
   });
 
-  // POST /products – adatbázis hiba
+  // POST /products adatbázis hiba
   test('POST /products – DB-hiba -> 500', async () => {
-    dbHandler.productTable.findOne.mockResolvedValueOnce(null); // SKU nincs
-    dbHandler.productTable.findOne.mockResolvedValueOnce(null); // Név nincs
+    dbHandler.productTable.findOne.mockResolvedValueOnce(null); 
+    dbHandler.productTable.findOne.mockResolvedValueOnce(null); 
     dbHandler.productTable.create.mockRejectedValue(new Error('DB error'));
     const res = await supertest(app).post('/products').send({
       newSku: 'SKU1234',

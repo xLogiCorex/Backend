@@ -5,7 +5,7 @@ const { orderTable, orderItemTable, productTable, stockMovementTable, logTable, 
 const authenticateJWT = require('./authenticateJWT');
 const authorizeRole = require('./authorizeRole');
 
-// --- RENDELÉSEK LEKÉRÉSE ---
+// Rendelések lekérése
 router.get('/orders', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
     try {
         const where = req.user.role === 'sales' ? { userId: req.user.id } : {};
@@ -17,17 +17,17 @@ router.get('/orders', authenticateJWT(), authorizeRole(['admin', 'sales']), asyn
     }
 });
 
-// --- ÚJ RENDELÉS LÉTREHOZÁSA ---
-    router.post('/orders', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
+// Új rendelés létrehozása
+router.post('/orders', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
     try {
         const { partnerId, items } = req.body;
 
         if (!partnerId) {
-        return res.status(400).json({ message: 'Partner megadása kötelező!' });
+            return res.status(400).json({ message: 'Partner megadása kötelező!' });
         }
 
         if (!items || !Array.isArray(items) || items.length === 0) {
-        return res.status(400).json({ message: 'A rendeléshez legalább egy tétel szükséges!' });
+            return res.status(400).json({ message: 'A rendeléshez legalább egy tétel szükséges!' });
         }
 
         // Új orderNumber generálása
@@ -35,39 +35,37 @@ router.get('/orders', authenticateJWT(), authorizeRole(['admin', 'sales']), asyn
         const lastOrder = await orderTable.findOne({ order: [['id', 'DESC']] });
         const newOrderNumber = `ORD-${year}-${String((lastOrder ? lastOrder.id : 0) + 1).padStart(5, '0')}`;
 
-        // Rendelés mentése
         const newOrder = await orderTable.create({
-        orderNumber: newOrderNumber,
-        partnerId,
-        userId: req.user.id,
-        date: new Date(),
-        status: 'new'
+            orderNumber: newOrderNumber,
+            partnerId,
+            userId: req.user.id,
+            date: new Date(),
+            status: 'new'
         });
 
-        // Tételek mentése
         let totalNet = 0;
         for (const item of items) {
-        const { productId, quantity } = item;
-        if (!productId || !quantity || quantity <= 0) {
-            return res.status(400).json({ message: 'Érvénytelen rendelési tétel!' });
-        }
+            const { productId, quantity } = item;
+            if (!productId || !quantity || quantity <= 0) {
+                return res.status(400).json({ message: 'Érvénytelen rendelési tétel!' });
+            }
 
-        const product = await productTable.findByPk(productId);
-        if (!product) {
-            return res.status(404).json({ message: `A(z) ${productId} ID-jú termék nem található!` });
-        }
+            const product = await productTable.findByPk(productId);
+            if (!product) {
+                return res.status(404).json({ message: `A(z) ${productId} ID-jú termék nem található!` });
+            }
 
-        const unitPrice = product.price;
-        const totalPrice = unitPrice * quantity;
-        totalNet += totalPrice;
+            const unitPrice = product.price;
+            const totalPrice = unitPrice * quantity;
+            totalNet += totalPrice;
 
-        await orderItemTable.create({
-            orderId: newOrder.id,
-            productId,
-            quantity,
-            unitPrice,
-            totalPrice
-        });
+            await orderItemTable.create({
+                orderId: newOrder.id,
+                productId,
+                quantity,
+                unitPrice,
+                totalPrice
+            });
         }
 
         return res.status(201).json({ message: 'Rendelés sikeresen rögzítve!', orderId: newOrder.id });
@@ -77,12 +75,11 @@ router.get('/orders', authenticateJWT(), authorizeRole(['admin', 'sales']), asyn
     }
 });
 
-// --- RENDELÉS STÁTUSZ MÓDOSÍTÁSA ---
+// Rendelés státusz módosítása
 router.put('/orders/:id/status', authenticateJWT(), authorizeRole(['admin']), async (req, res) => {
     const orderId = req.params.id;
     const { newStatus } = req.body;
 
-    // Megengedett státuszok
     const allowedStatuses = ['new', 'confirmed', 'processing', 'completed', 'cancelled', 'on_hold'];
 
     if (!allowedStatuses.includes(newStatus)) {
@@ -95,48 +92,46 @@ router.put('/orders/:id/status', authenticateJWT(), authorizeRole(['admin']), as
 
         const previousStatus = order.status;
         order.status = newStatus;
-        
-        // Ha completed-re változik, akkor számla létrehozása
+
         if (newStatus === 'completed' && previousStatus !== 'completed') {
             await createInvoiceForOrder(order);
         }
 
         await order.save();
 
-        // Naplózás
         try {
             await logTable.create({
                 userId: req.user.id,
                 action: 'ORDER_UPDATE',
                 targetType: 'order',
                 targetId: order.id,
-                payload: { 
-                    status: newStatus, 
-                    previousStatus: previousStatus 
+                payload: {
+                    status: newStatus,
+                    previousStatus: previousStatus
                 }
             });
         } catch (logError) {
             console.error("Naplózási hiba:", logError);
         }
 
-        res.status(200).json({ 
+        res.status(200).json({
             message: `Rendelés státusza sikeresen módosítva "${newStatus}"-re.`,
-            order 
+            order
         });
 
     } catch (error) {
         console.error("Státusz módosítás hiba:", error);
-        res.status(500).json({ 
-            message: 'Hiba történt a státusz módosítása során.', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Hiba történt a státusz módosítása során.',
+            error: error.message
         });
     }
 });
 
-// --- SZÁMLA LÉTREHOZÁSA RENDELÉSHEZ ---
+// Számla létrehozása rendeléshez
 async function createInvoiceForOrder(order) {
     try {
-        // Ellenőrizzük, hogy van-e már számla ehhez a rendeléshez
+        
         const existingInvoice = await invoiceTable.findOne({
             where: { orderId: order.id }
         });
@@ -146,7 +141,6 @@ async function createInvoiceForOrder(order) {
             return existingInvoice;
         }
 
-        // Rendelési tételek lekérése
         const orderItems = await orderItemTable.findAll({
             where: { orderId: order.id }
         });
@@ -154,13 +148,13 @@ async function createInvoiceForOrder(order) {
         // Összegek kiszámítása
         let totalNet = 0;
         const itemsWithDetails = [];
-        
+
         for (const item of orderItems) {
             const product = await productTable.findByPk(item.productId);
             const itemTotal = item.quantity * item.unitPrice;
-            
+
             totalNet += itemTotal;
-            
+
             itemsWithDetails.push({
                 productId: item.productId,
                 productName: product ? product.name : 'Ismeretlen termék',
@@ -170,7 +164,7 @@ async function createInvoiceForOrder(order) {
             });
         }
 
-        const totalVAT = Math.round(totalNet * 0.27); // 27% ÁFA
+        const totalVAT = Math.round(totalNet * 0.27);
         const totalGross = totalNet + totalVAT;
 
         // Számlaszám generálása: SZ-ÉÉÉÉ-00001
@@ -178,7 +172,7 @@ async function createInvoiceForOrder(order) {
         const lastInvoice = await invoiceTable.findOne({
             order: [['id', 'DESC']]
         });
-        
+
         const nextNumber = lastInvoice ? parseInt(lastInvoice.invoiceNumber.split('-')[2]) + 1 : 1;
         const invoiceNumber = `SZ-${year}-${String(nextNumber).padStart(5, '0')}`;
 
@@ -205,14 +199,14 @@ async function createInvoiceForOrder(order) {
     }
 }
 
-// --- SAJÁT RENDELÉSEK LEKÉRÉSE ---
+// Saját rendelések lekérése
 router.get('/orders/my', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
     try {
         const where = req.user.role === 'sales' ? { userId: req.user.id } : {};
         const orders = await orderTable.findAll({ where, order: [['date', 'DESC']] });
 
         if (!orders || orders.length === 0) {
-        return res.status(404).json({ message: 'Nincsenek saját rendeléseid.' });
+            return res.status(404).json({ message: 'Nincsenek saját rendeléseid.' });
         }
 
         res.status(200).json(orders);
@@ -222,46 +216,40 @@ router.get('/orders/my', authenticateJWT(), authorizeRole(['admin', 'sales']), a
     }
 });
 
-// --- RENDELÉS RÉSZLETEINEK LEKÉRÉSE (egyszerűbb változat) ---
+// Rendelés részleteinek lekérése
 router.get('/orders/:id', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
     try {
         const orderId = req.params.id;
-        
-        // Alap rendelés adatok
+
         const order = await orderTable.findByPk(orderId);
         if (!order) {
             return res.status(404).json({ message: 'Rendelés nem található!' });
         }
 
-        // Jogosultság ellenőrzés
         if (req.user.role === 'sales' && order.userId !== req.user.id) {
             return res.status(403).json({ message: 'Nincs jogosultságod ehhez a rendeléshez!' });
         }
 
-        // Rendelési tételek
         const orderItems = await orderItemTable.findAll({
             where: { orderId }
         });
 
-        // Partner adatai
         const partner = await partnerTable.findByPk(order.partnerId, {
             attributes: ['name']
         });
 
-        // Termék adatok manuális lekérése
         const itemsWithProducts = [];
         for (const item of orderItems) {
             const product = await productTable.findByPk(item.productId, {
                 attributes: ['name', 'sku', 'unit']
             });
-            
+
             itemsWithProducts.push({
                 ...item.toJSON(),
                 product: product || { name: 'Ismeretlen termék', sku: 'N/A', unit: 'db' }
             });
         }
 
-        // Összeállítás válasznak
         const response = {
             ...order.toJSON(),
             items: itemsWithProducts,
