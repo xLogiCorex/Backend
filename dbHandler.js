@@ -367,3 +367,5 @@ exports.logTable = dbHandler.define('log', {
     defaultValue: DataTypes.NOW
   }
 });
+
+exports.sequelize = dbHandler; 

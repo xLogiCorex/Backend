@@ -198,4 +198,38 @@ router.post('/invoices', authenticateJWT(), authorizeRole(['admin', 'sales']), a
   }
 });
 
+// Saját számlák lekérése
+router.get('/invoices/my', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
+    try {
+        const where = { userId: req.user.id }; 
+
+        const invoices = await dbHandler.invoiceTable.findAll({
+            where,
+            order: [['issueDate', 'DESC']]
+        });
+
+        const invoicesWithPartnerNames = await Promise.all(
+            invoices.map(async (invoice) => {
+                const partner = await dbHandler.partnerTable.findByPk(invoice.partnerId, {
+                    attributes: ['name']
+                });
+                return {
+                    ...invoice.toJSON(),
+                    partnerName: partner ? partner.name : 'Ismeretlen partner'
+                };
+            })
+        );
+
+        if (invoicesWithPartnerNames.length === 0) {
+            return res.status(404).json({ message: 'Nincsenek saját számláid.' });
+        }
+
+        res.status(200).json(invoicesWithPartnerNames);
+    } catch (error) {
+        console.error("GET /invoices/my hiba:", error);
+        res.status(500).json({ message: "Szerverhiba a saját számlák lekérésekor", error: error.message });
+    }
+});
+
+
 module.exports = router;

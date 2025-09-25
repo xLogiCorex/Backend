@@ -6,6 +6,7 @@ const dbHandler = require('./dbHandler')
 
 const app = express().use(express.json(), cors())
 
+// Táblák szinkronizálása
 async function syncTables() {
     try {
         console.log('🔄 Táblák szinkronizálása...');
@@ -29,6 +30,7 @@ async function syncTables() {
 
 syncTables()
 
+// Modulok/útválasztók betöltése
 const users = require('./users');
 const products = require('./products');
 const categories = require('./categories');

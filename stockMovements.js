@@ -75,13 +75,41 @@ router.get('/stockMovements', authenticateJWT(), authorizeRole(['admin', 'sales'
   }
 });
 
+// Saját készletmozgások listázása
+router.get('/stockMovements/my', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
+    try {
+        const { type, from, to, productId } = req.query; 
+        const where = { userId: req.user.id }; // Csak a saját mozgások
+
+        if (type) where.type = type; 
+        if (productId) where.productId = productId; 
+        if (from || to) { 
+            where.date = {}; 
+            if (from) where.date['$gte'] = new Date(from); 
+            if (to) where.date['$lte'] = new Date(to);    
+        }
+
+        const movements = await stockMovementTable.findAll({ where, order: [['date', 'DESC']] });
+        
+        if (movements.length === 0) {
+            return res.status(404).json({ message: 'Nincsenek saját készletmozgásaid.' });
+        }
+
+        res.status(200).json(movements);
+    } catch (error) {
+        console.error("GET /stockMovements/my hiba:", error);
+        res.status(500).json({ message: "Hiba történt a saját készletmozgások lekérésekor.", error: error.message });
+    }
+});
+
 // Bevételezés
 router.post('/stockMovements/in', authenticateJWT(), authorizeRole(['admin', 'sales']), async (req, res) => {
   const validation = validateStockFields(req.body);
   if (!validation.valid) return res.status(400).json({ message: validation.message });
 
   await withTransaction(req, res, async (transaction) => {
-    const { productId, quantity, note } = req.body;
+    const { productId, note } = req.body;
+    const quantity = parseInt(req.body.quantity); 
     const userId = req.user.id;
 
     const product = await productTable.findByPk(productId, { transaction });
@@ -97,7 +125,6 @@ router.post('/stockMovements/in', authenticateJWT(), authorizeRole(['admin', 'sa
       userId,
       note,
       movementNumber,
-      transferReason: null,
     }, { transaction });
 
     await product.update({
@@ -131,7 +158,8 @@ router.post('/stockMovements/out', authenticateJWT(), authorizeRole(['admin', 's
   if (!validation.valid) return res.status(400).json({ message: validation.message });
 
   await withTransaction(req, res, async (transaction) => {
-    const { productId, quantity, note } = req.body;
+    const { productId, note } = req.body;
+    const quantity = parseInt(req.body.quantity); 
     const userId = req.user.id;
 
     const product = await productTable.findByPk(productId, { transaction });
@@ -151,7 +179,6 @@ router.post('/stockMovements/out', authenticateJWT(), authorizeRole(['admin', 's
       userId,
       note,
       movementNumber,
-      transferReason: null
     }, { transaction });
 
     await product.update({
@@ -162,7 +189,7 @@ router.post('/stockMovements/out', authenticateJWT(), authorizeRole(['admin', 's
 
     await logAction({
       userId,
-      action: 'STOCK_IN',
+      action: 'STOCK_OUT',
       targetType: 'StockMovement',
       targetId: movement.id,
       payload: {
@@ -185,7 +212,8 @@ router.post('/stockMovements/transfer', authenticateJWT(), authorizeRole(['admin
   if (!validation.valid) return res.status(400).json({ message: validation.message });
 
   await withTransaction(req, res, async (transaction) => {
-    const { productId, quantity, transferReason } = req.body;
+    const { productId, transferReason } = req.body;
+    const quantity = parseInt(req.body.quantity); 
     const userId = req.user.id;
 
     const product = await productTable.findByPk(productId, { transaction });
@@ -202,7 +230,7 @@ router.post('/stockMovements/transfer', authenticateJWT(), authorizeRole(['admin
       type: 'transfer',
       quantity,
       userId,
-      transferReason: transferReason || null,
+      transferReason,
       movementNumber
     }, { transaction });
 
