@@ -189,6 +189,7 @@ async function createInvoiceForOrder(order) {
             totalGross,
             note: `Számla a ${order.orderNumber} rendeléshez`
         });
+        await order.update({ invoiceId: newInvoice.id });
 
         console.log(`✅ Számla létrehozva: ${invoiceNumber} a ${order.orderNumber} rendeléshez`);
         return newInvoice;
